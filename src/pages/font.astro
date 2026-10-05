@@ -35,7 +35,7 @@
       .back-home{color:#a8d7ff;text-decoration:none;padding:.55rem .8rem;border:1px solid #3c3c39;border-radius:12px;transition:background .2s}.back-home:hover{background:#31594f;color:#fff}.github{display:inline-block;color:#a8d7ff;text-decoration:none;background:#1b1b1b;border:1px solid #78bdf2;border-radius:12px;padding:.55rem 1rem;font-weight:600;transition:background .2s,color .2s}.github svg{width:1.05em;height:1.05em;fill:currentColor;vertical-align:-.16em;margin-right:.45rem}.github:hover{background:#78bdf2;color:#14212b}.device { background:var(--blue); color:#15222c; padding:.6rem 1rem; border-radius:20px; }
       .maker { max-width: none; }
       .font-workspace { display:grid; grid-template-columns:minmax(0,336px) minmax(0,1fr); gap:2rem; grid-column:1 / -1; }
-      .font-settings label { display:block; }
+      .id-row{display:flex;gap:.45rem}.id-row input{flex:1}.id-row button{border:1px solid var(--line);background:#292927;color:#ddd;border-radius:12px;width:44px;font-size:1.25rem;cursor:pointer}.id-row button:hover{background:#31594f}.font-settings label { display:block; }
       .font-settings input { display:block; width:100%; box-sizing:border-box; }
       .setting-action { display:flex; align-items:center; gap:.75rem; margin-top:1rem; }
       .setting-action details { flex:1; }
@@ -75,6 +75,7 @@
           <label>chaos字体名 <input id="label" value="MyFont" maxlength="12" /></label>
           <label>表盘名称 <input id="packname" value="Chaos Font" /></label>
           <label>Lua页面标题 <input id="title" value="字体投递 MyFont" /></label>
+          <label>表盘 ID <span class="id-row"><input id="pkg" maxlength="12" placeholder="留空自动生成" /><button id="random-id" type="button" title="随机生成表盘 ID">↻</button></span><small>12 位数字</small></label>
           <div class="setting-action">
             <details><summary>字体投递包其他设置</summary>
               <p class="sub">Android 端同款素材已内置，正常使用无需选择额外文件。</p>
@@ -92,6 +93,11 @@
     </section>
 
     <script>
+      import { subsetFont } from "../lib/font/fontSubset";
+      import { imageDataPreview } from "../lib/pack/previewFactory";
+      import { buildFontPack } from "../lib/pack/packBuilders";
+      const idAlphabet = '0123456789';
+      document.querySelector('#random-id')?.addEventListener('click', () => { let id = ''; for (let i = 0; i < 12; i++) id += idAlphabet[Math.floor(Math.random() * 10)]; document.querySelector('#pkg').value = id; });
       const input = document.querySelector('#font');
       const status = document.querySelector('#font-status');
       const fontDownload = document.querySelector('#font-download');
@@ -119,7 +125,6 @@
           const face = new FontFace("ImportedFont", bytes.slice().buffer);
           await face.load(); document.fonts.add(face);
           document.querySelector("#font-sample").style.fontFamily = "ImportedFont";
-          const { subsetFont } = await import('../lib/font/fontSubset');
           const [subset, report] = subsetFont(bytes, { traditional: document.querySelector('#charset').value === 'traditional', normalizeMetrics: true });
           subsetBytes = subset;
           fontDownload.disabled = false;
@@ -141,7 +146,6 @@
                 worker.postMessage({ type: 'image', image: { data: image.data, width: image.width, height: image.height } }, [image.data.buffer]);
               });
             } catch {
-              const { imageDataPreview } = await import('../lib/pack/previewFactory');
               previewBytes = imageDataPreview(fallbackImage);
             }
             previewDownload.disabled = false;
@@ -159,40 +163,13 @@
           const ko = await fileBytes('#ko', 'chaos_sup.ko'), iconBin = await fileBytes('#iconbin', 'chaos_icon.bin');
           const fontLua = await textAsset('#fontlua', 'font_pack.lua');
           if (!ko || !iconBin || !fontLua) throw new Error('未找到内置素材，请上传 chaos_sup.ko、chaos_icon.bin 和 fontpack/main.lua');
-          const { buildFontPack } = await import('../lib/pack/packBuilders');
           const label = document.querySelector('#label').value;
           const result = buildFontPack({ ko, iconBin, fontLua, iconLua: '' }, {
             label, packName: document.querySelector('#packname').value,
-            title: document.querySelector('#title').value, pkgName: null, font: subsetBytes,
+            title: document.querySelector('#title').value, pkgName: document.querySelector('#pkg').value || null, font: subsetBytes,
           }, previewBytes);
           save(result.bytes, `${result.pkgName}.bin`, 'application/octet-stream');
           out.textContent = `已生成 ${result.pkgName}.bin · ${result.bytes.byteLength.toLocaleString()} 字节`;
-        } catch (e) { out.textContent = e instanceof Error ? e.message : String(e); }
-      });
-      document.querySelector('#icon-download')?.addEventListener('click', async () => {
-        const out = document.querySelector('#icon-status');
-        try {
-          const files = [...(document.querySelector('#icons')?.files || [])];
-          const ko = await fileBytes('#ko', 'chaos_sup.ko'), iconBin = await fileBytes('#iconbin', 'chaos_icon.bin');
-          const iconLua = await textAsset('#iconlua', 'icon_pack.lua');
-          if (!files.length || !iconLua || !ko || !iconBin) throw new Error('请选择图标；未找到内置素材时请上传 iconpack/main.lua、chaos_sup.ko 和 chaos_icon.bin');
-          const { convert } = await import('../lib/icon/iconConvert');
-          const { stemOf } = await import('../lib/icon/iconSpec');
-          const picked = new Map();
-          for (const file of files) {
-            const slot = stemOf(file.name.replace(/\.[^.]+$/, '').toLowerCase());
-            if (!slot) continue;
-            const bitmap = await createImageBitmap(file), c = document.createElement('canvas'); c.width = bitmap.width; c.height = bitmap.height;
-            const ctx = c.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const data = ctx.getImageData(0, 0, c.width, c.height).data;
-            const argb = new Uint32Array(c.width * c.height); for (let i=0; i<argb.length; i++) argb[i] = (data[i*4+3]<<24)|(data[i*4]<<16)|(data[i*4+1]<<8)|data[i*4+2];
-            picked.set(slot.stem, convert(argb, c.width, c.height, slot)[0]);
-          }
-          if (!picked.size) throw new Error('没有识别到有效槽位名');
-          const { exportIcons } = await import('../lib/icon/iconSpec');
-          const { buildIconPack } = await import('../lib/pack/packBuilders');
-          const icons = exportIcons(picked);
-          const result = buildIconPack({ ko, iconBin, fontLua: '', iconLua }, { short: document.querySelector('#icon-short').value, packName: document.querySelector('#icon-packname').value, title: document.querySelector('#icon-title').value, pkgName: null, icons }, previewBytes || new Uint8Array());
-          save(result.bytes, `${result.pkgName}.bin`, 'application/octet-stream'); out.textContent = `已生成 ${result.pkgName}.bin · ${result.iconCount} 张图标`;
         } catch (e) { out.textContent = e instanceof Error ? e.message : String(e); }
       });
     </script>
