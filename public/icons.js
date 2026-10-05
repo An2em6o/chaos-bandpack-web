@@ -405,8 +405,8 @@ function pkgFor(blob) {
   return PKG_PREFIX + String(n % 1e8).padStart(8, "0");
 }
 function checkPkg(pkg) {
-  if (!/^[A-Z0-9]{12}$/.test(pkg)) {
-    throw new PackError(`\u8868\u76D8 ID \u5FC5\u987B\u662F 12 \u4F4D\u6570\u5B57\u6216\u5927\u5C0F\u5199\u5B57\u6BCD, \u73B0\u5728\u662F\u300C${pkg}\u300D`);
+  if (!/^[0-9]{12}$/.test(pkg)) {
+    throw new PackError(`\u8868\u76D8 ID \u5FC5\u987B\u662F 12 \u4F4D\u6570\u5B57, \u73B0\u5728\u662F\u300C${pkg}\u300D`);
   }
 }
 function checkPkgAgainst(pkg, mainPkg = MAIN_PKG) {
@@ -1484,7 +1484,7 @@ var status = document.querySelector("#status");
 var group = "DESKTOP";
 var picked = /* @__PURE__ */ new Map();
 var replacementUrls = /* @__PURE__ */ new Map();
-var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+var alphabet = "0123456789";
 function randomId() {
   let out = "";
   for (let i = 0; i < 12; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];

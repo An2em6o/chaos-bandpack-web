@@ -61,8 +61,8 @@ export function pkgFor(blob: Uint8Array): string {
 
 /** 手填包名校验(用户可以覆盖自动推导的号) */
 export function checkPkg(pkg: string): void {
-  if (!/^[A-Z0-9]{12}$/.test(pkg)) {
-    throw new PackError(`表盘 ID 必须是 12 位数字或大小写字母, 现在是「${pkg}」`);
+  if (!/^[0-9]{12}$/.test(pkg)) {
+    throw new PackError(`表盘 ID 必须是 12 位数字, 现在是「${pkg}」`);
   }
 }
 
