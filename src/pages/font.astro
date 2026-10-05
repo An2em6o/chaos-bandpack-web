@@ -72,7 +72,7 @@
         </div>
         <div class="font-settings">
           <h3>导入字体预览</h3><p id="font-sample">向米坛知名内容破解者lh杨设敬。<br />0123456789 ABC abc</p><h3>字体设置</h3>
-          <label>chaos字体名 <input id="label" value="MyFont" maxlength="12" /></label>
+          <label>chaos字体名 <input id="label" value="MyFont" maxlength="12" /><small id="label-hint">UTF-8：6 / 12 字节</small></label>
           <label>表盘名称 <input id="packname" value="Chaos Font" /></label>
           <label>Lua页面标题 <input id="title" value="字体投递 MyFont" /></label>
           <label>表盘 ID <span class="id-row"><input id="pkg" maxlength="12" placeholder="留空自动生成" /><button id="random-id" type="button" title="随机生成表盘 ID">↻</button></span><small>12 位数字</small></label>
@@ -100,6 +100,15 @@
       document.querySelector('#random-id')?.addEventListener('click', () => { let id = ''; for (let i = 0; i < 12; i++) id += idAlphabet[Math.floor(Math.random() * 10)]; document.querySelector('#pkg').value = id; });
       const input = document.querySelector('#font');
       const status = document.querySelector('#font-status');
+      const labelInput = document.querySelector('#label');
+      const labelHint = document.querySelector('#label-hint');
+      const updateLabelHint = () => {
+        const n = new TextEncoder().encode(labelInput.value).length;
+        labelHint.textContent = `UTF-8：${n} / 12 字节${n > 12 ? '（超出限制，无法生成）' : ''}`;
+        labelHint.style.color = n > 12 ? '#ff9b9b' : '';
+      };
+      labelInput?.addEventListener('input', updateLabelHint);
+      updateLabelHint();
       const fontDownload = document.querySelector('#font-download');
       const previewDownload = document.querySelector('#preview-download');
       const canvas = document.querySelector('#preview');
@@ -169,6 +178,8 @@
           const fontLua = await textAsset('#fontlua', 'font_pack.lua');
           if (!ko || !iconBin || !fontLua) throw new Error('未找到内置素材，请上传 chaos_sup.ko、chaos_icon.bin 和 fontpack/main.lua');
           const label = document.querySelector('#label').value;
+          const labelBytes = new TextEncoder().encode(label).length;
+          if (labelBytes === 0 || labelBytes > 12) throw new Error(`chaos字体名 UTF-8 长度为 ${labelBytes} 字节，必须在 1 到 12 字节之间`);
           const result = buildFontPack({ ko, iconBin, fontLua, iconLua: '' }, {
             label, packName: document.querySelector('#packname').value,
             title: document.querySelector('#title').value, pkgName: document.querySelector('#pkg').value || null, font: subsetBytes,
