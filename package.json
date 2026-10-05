@@ -1,0 +1,22 @@
+{
+  "name": "chaos-bandpack-web",
+  "version": "0.1.0",
+  "description": "Chaos 制作台网页版 —— 给小米手环 10 Pro 制作字体/图标投递包（纯静态，全部计算在浏览器本地完成）",
+  "type": "module",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "astro": "^5.12.0",
+    "fonteditor-core": "^2.6.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}

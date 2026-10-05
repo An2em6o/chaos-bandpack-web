@@ -1,0 +1,202 @@
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>字体投递 · Chaos 制作台</title>
+    <style>
+      :root { color-scheme: dark; --bg:#101010; --panel:#1b1b1a; --panel2:#222220; --line:#575752; --blue:#a8d7ff; --green:#31594f; }
+      @font-face { font-family: ChaosMiSans; src: url('/fonts/MiSans-Regular-subset.ttf') format('truetype'); font-display:swap; }
+      body {
+        font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        max-width: 1120px; margin: 0 auto; padding: 2rem clamp(1rem, 4vw, 3rem);
+        background:var(--bg); color:#f1f1ed;
+        line-height: 1.7;
+      }
+      h1 { font-size: 1.9rem; margin-bottom: .5rem; letter-spacing:.02em; }
+      h2 { font-weight:600; }
+      .sub { opacity: .7; margin-bottom: 1.25rem; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .75rem; }
+      .card { background:var(--panel); border:1px solid #252523; border-radius:18px; padding:1rem 1.25rem; margin:.8rem 0; }
+      .card .label { font-size: .8rem; opacity: .6; }
+      .card .value { font-weight: 500; }
+      ol { padding-left: 1.25rem; }
+      li { margin: .35rem 0; }
+      .done { color: #0f6e56; font-weight: 500; }
+      footer { margin-top: 3rem; font-size: .85rem; opacity: .6; }
+      label { display:inline-block; margin:.35rem .6rem .35rem 0; }
+      input, select { color:#f1f1ed; background:#151514; border:1px solid var(--line); border-radius:14px; padding:.7rem .8rem; }
+      button { color:#111; background:var(--blue); border:0; border-radius:999px; padding:.7rem 1rem; font-weight:600; cursor:pointer; }
+      button:disabled { opacity:.45; cursor:not-allowed; }
+      details { background:var(--panel); border-radius:18px; padding:1rem 1.25rem; }
+      summary { cursor:pointer; font-weight:600; }
+      .topline { display:flex; justify-content:space-between; align-items:center; opacity:.8; font-size:.8rem; }
+      .back-home{color:#a8d7ff;text-decoration:none;padding:.55rem .8rem;border:1px solid #3c3c39;border-radius:12px;transition:background .2s}.back-home:hover{background:#31594f;color:#fff}.device { background:var(--blue); color:#15222c; padding:.6rem 1rem; border-radius:20px; }
+      .maker { max-width: none; }
+      .font-workspace { display:grid; grid-template-columns:minmax(0,336px) minmax(0,1fr); gap:2rem; grid-column:1 / -1; }
+      .font-settings label { display:block; }
+      .font-settings input { display:block; width:100%; box-sizing:border-box; }
+      .setting-action { display:flex; align-items:center; gap:.75rem; margin-top:1rem; }
+      .setting-action details { flex:1; }
+      .setting-action > button { white-space:nowrap; }
+      #font-sample { font-size:24px; overflow-wrap:anywhere; }
+      @media(max-width:650px) { .font-workspace { grid-template-columns:1fr; } .setting-action { align-items:stretch; flex-direction:column; } }
+      @media (min-width: 820px) {
+        .maker { display:grid; grid-template-columns: 1fr 1fr; gap:1rem 1.5rem; }
+        .maker > h2, .maker > p, .maker > label, .maker > output, .maker > button, .maker > canvas { grid-column:1 / -1; }
+        .maker > details { margin-top:0 !important; }
+      }
+      @media (max-width: 600px) {
+        body { padding-top:1rem; }
+        h1 { font-size:1.55rem; }
+        .topline { font-size:.72rem; }
+        input, select { max-width:100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topline"><a class="back-home" href="/">← 返回主页</a><span class="device">10 Pro</span></div>
+    <h1>字体投递</h1>
+    <p class="sub">字体制作与投递包导出</p>
+
+    <section class="maker card">
+      <h2 style="font-size:1.1rem;margin-top:0">字体制作</h2>
+      <p class="sub">字体、图标、预览和投递包均在浏览器内处理，不上传素材。</p>
+      <div class="font-workspace">
+        <div>
+          <label>选择 TrueType 字体 <input id="font" type="file" accept=".ttf,.ttc,font/ttf" /></label>
+          <label>字符集 <select id="charset"><option value="simplified">简体（GB2312）</option><option value="traditional">繁体（GB2312 + Big5）</option></select></label>
+          <output id="font-status" style="display:block;margin-top:.75rem;opacity:.75"></output>
+          <canvas id="preview" width="336" height="480" style="display:block;width:336px;max-width:100%;height:auto;margin-top:1rem;border-radius:48px;background:#1c1c1e"></canvas>
+        </div>
+        <div class="font-settings">
+          <h3>导入字体预览</h3><p id="font-sample">向米坛知名内容破解者lh杨设敬。<br />0123456789 ABC abc</p><h3>字体设置</h3>
+          <label>chaos字体名 <input id="label" value="MyFont" maxlength="12" /></label>
+          <label>表盘名称 <input id="packname" value="Chaos Font" /></label>
+          <label>Lua页面标题 <input id="title" value="字体投递 MyFont" /></label>
+          <div class="setting-action">
+            <details><summary>字体投递包其他设置</summary>
+              <p class="sub">Android 端同款素材已内置，正常使用无需选择额外文件。</p>
+              <label>替换 chaos_sup.ko <input id="ko" type="file" /></label><br />
+              <label>替换 chaos_icon.bin <input id="iconbin" type="file" /></label><br />
+              <label>替换 fontpack/main.lua <input id="fontlua" type="file" accept=".lua,.txt" /></label><br />
+              <button id="font-download" type="button" disabled>下载子集字体</button>
+              <button id="preview-download" type="button" disabled style="margin-left:.5rem">下载预览块</button>
+              <output id="pack-status" style="display:block;margin-top:.5rem;opacity:.75"></output>
+            </details>
+            <button id="pack-download" type="button" disabled>下载字体投递包</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const input = document.querySelector('#font');
+      const status = document.querySelector('#font-status');
+      const fontDownload = document.querySelector('#font-download');
+      const previewDownload = document.querySelector('#preview-download');
+      const canvas = document.querySelector('#preview');
+      let subsetBytes;
+      let previewBytes;
+      const fileBytes = async (id, bundledName) => {
+        const f = document.querySelector(id)?.files?.[0];
+        if (f) return new Uint8Array(await f.arrayBuffer());
+        try { const r = await fetch(`/pack/${bundledName}`); if (r.ok) return new Uint8Array(await r.arrayBuffer()); } catch {}
+        return null;
+      };
+      const textAsset = async (id, bundledName) => {
+        const f = document.querySelector(id)?.files?.[0];
+        if (f) return f.text();
+        try { const r = await fetch(`/pack/${bundledName}`); if (r.ok) return r.text(); } catch {}
+        return null;
+      };
+      const save = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], {type})); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+      input?.addEventListener('change', async () => {
+        const file = input.files?.[0]; if (!file || !status) return;
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const face = new FontFace("ImportedFont", bytes.slice().buffer);
+          await face.load(); document.fonts.add(face);
+          document.querySelector("#font-sample").style.fontFamily = "ImportedFont";
+          const { subsetFont } = await import('../lib/font/fontSubset');
+          const [subset, report] = subsetFont(bytes, { traditional: document.querySelector('#charset').value === 'traditional', normalizeMetrics: true });
+          subsetBytes = subset;
+          fontDownload.disabled = false;
+          const ctx = canvas?.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#1c1c1e'; ctx.fillRect(0, 0, 336, 480);
+            ctx.fillStyle = '#f2f2f2'; ctx.textAlign = 'center'; ctx.font = '40px ChaosMiSans, sans-serif'; ctx.fillText(file.name.replace(/\.[^.]+$/, '').slice(0, 12), 168, 90);
+            ctx.fillStyle = '#2c2c2e'; ctx.roundRect(16, 145, 304, 150, 24, 24); ctx.fill();
+            ctx.fillStyle = '#b3b3b3'; ctx.font = '22px ChaosMiSans, sans-serif'; ctx.fillText(`${report.outGlyphs} glyphs`, 168, 230);
+            ctx.fillStyle = '#2563eb'; ctx.roundRect(16, 350, 304, 64, 24, 24); ctx.fill();
+            ctx.fillStyle = '#f2f2f2'; ctx.font = '24px ChaosMiSans, sans-serif'; ctx.fillText('投递字体', 168, 391);
+            const image = ctx.getImageData(0, 0, 336, 480);
+            const fallbackImage = new ImageData(new Uint8ClampedArray(image.data), image.width, image.height);
+            try {
+              const worker = new Worker(new URL('../workers/preview.worker.ts', import.meta.url), { type: 'module' });
+              previewBytes = await new Promise((resolve, reject) => {
+                worker.onmessage = (event) => { worker.terminate(); event.data.ok ? resolve(event.data.data) : reject(new Error(event.data.error)); };
+                worker.onerror = (event) => { worker.terminate(); reject(event.error || new Error('预览 Worker 失败')); };
+                worker.postMessage({ type: 'image', image: { data: image.data, width: image.width, height: image.height } }, [image.data.buffer]);
+              });
+            } catch {
+              const { imageDataPreview } = await import('../lib/pack/previewFactory');
+              previewBytes = imageDataPreview(fallbackImage);
+            }
+            previewDownload.disabled = false;
+            document.querySelector('#pack-download').disabled = false;
+          }
+          status.textContent = `已完成子集化 ${file.name} · ${bytes.byteLength.toLocaleString()} → ${subset.byteLength.toLocaleString()} 字节 · 字形 ${report.srcGlyphs} → ${report.outGlyphs} · 保留 ${report.keptChars.toLocaleString()} 个码点`;
+        } catch (e) { status.textContent = e instanceof Error ? e.message : String(e); }
+      });
+      fontDownload?.addEventListener('click', () => subsetBytes && save(subsetBytes, 'font-subset.ttf', 'font/ttf'));
+      previewDownload?.addEventListener('click', () => previewBytes && save(previewBytes, 'preview.bin', 'application/octet-stream'));
+      document.querySelector('#pack-download')?.addEventListener('click', async () => {
+        const out = document.querySelector('#pack-status');
+        try {
+          if (!subsetBytes || !previewBytes) throw new Error('请先选择字体并生成预览');
+          const ko = await fileBytes('#ko', 'chaos_sup.ko'), iconBin = await fileBytes('#iconbin', 'chaos_icon.bin');
+          const fontLua = await textAsset('#fontlua', 'font_pack.lua');
+          if (!ko || !iconBin || !fontLua) throw new Error('未找到内置素材，请上传 chaos_sup.ko、chaos_icon.bin 和 fontpack/main.lua');
+          const { buildFontPack } = await import('../lib/pack/packBuilders');
+          const label = document.querySelector('#label').value;
+          const result = buildFontPack({ ko, iconBin, fontLua, iconLua: '' }, {
+            label, packName: document.querySelector('#packname').value,
+            title: document.querySelector('#title').value, pkgName: null, font: subsetBytes,
+          }, previewBytes);
+          save(result.bytes, `${result.pkgName}.bin`, 'application/octet-stream');
+          out.textContent = `已生成 ${result.pkgName}.bin · ${result.bytes.byteLength.toLocaleString()} 字节`;
+        } catch (e) { out.textContent = e instanceof Error ? e.message : String(e); }
+      });
+      document.querySelector('#icon-download')?.addEventListener('click', async () => {
+        const out = document.querySelector('#icon-status');
+        try {
+          const files = [...(document.querySelector('#icons')?.files || [])];
+          const ko = await fileBytes('#ko', 'chaos_sup.ko'), iconBin = await fileBytes('#iconbin', 'chaos_icon.bin');
+          const iconLua = await textAsset('#iconlua', 'icon_pack.lua');
+          if (!files.length || !iconLua || !ko || !iconBin) throw new Error('请选择图标；未找到内置素材时请上传 iconpack/main.lua、chaos_sup.ko 和 chaos_icon.bin');
+          const { convert } = await import('../lib/icon/iconConvert');
+          const { stemOf } = await import('../lib/icon/iconSpec');
+          const picked = new Map();
+          for (const file of files) {
+            const slot = stemOf(file.name.replace(/\.[^.]+$/, '').toLowerCase());
+            if (!slot) continue;
+            const bitmap = await createImageBitmap(file), c = document.createElement('canvas'); c.width = bitmap.width; c.height = bitmap.height;
+            const ctx = c.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const data = ctx.getImageData(0, 0, c.width, c.height).data;
+            const argb = new Uint32Array(c.width * c.height); for (let i=0; i<argb.length; i++) argb[i] = (data[i*4+3]<<24)|(data[i*4]<<16)|(data[i*4+1]<<8)|data[i*4+2];
+            picked.set(slot.stem, convert(argb, c.width, c.height, slot)[0]);
+          }
+          if (!picked.size) throw new Error('没有识别到有效槽位名');
+          const { exportIcons } = await import('../lib/icon/iconSpec');
+          const { buildIconPack } = await import('../lib/pack/packBuilders');
+          const icons = exportIcons(picked);
+          const result = buildIconPack({ ko, iconBin, fontLua: '', iconLua }, { short: document.querySelector('#icon-short').value, packName: document.querySelector('#icon-packname').value, title: document.querySelector('#icon-title').value, pkgName: null, icons }, previewBytes || new Uint8Array());
+          save(result.bytes, `${result.pkgName}.bin`, 'application/octet-stream'); out.textContent = `已生成 ${result.pkgName}.bin · ${result.iconCount} 张图标`;
+        } catch (e) { out.textContent = e instanceof Error ? e.message : String(e); }
+      });
+    </script>
+
+    <footer>源码 AGPL-3.0 开源 · 移植自 <a href="https://github.com/WenHuaYiYang/chaos-bandpack">WenHuaYiYang/chaos-bandpack</a>（Android 版）</footer>
+  </body>
+</html>
