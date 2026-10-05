@@ -108,13 +108,13 @@
       const fileBytes = async (id, bundledName) => {
         const f = document.querySelector(id)?.files?.[0];
         if (f) return new Uint8Array(await f.arrayBuffer());
-        try { const r = await fetch(`/pack/${bundledName}`); if (r.ok) return new Uint8Array(await r.arrayBuffer()); } catch {}
+        try { const r = await fetch(new URL(`../pack/${bundledName}`, document.baseURI)); if (r.ok) return new Uint8Array(await r.arrayBuffer()); } catch {}
         return null;
       };
       const textAsset = async (id, bundledName) => {
         const f = document.querySelector(id)?.files?.[0];
         if (f) return f.text();
-        try { const r = await fetch(`/pack/${bundledName}`); if (r.ok) return r.text(); } catch {}
+        try { const r = await fetch(new URL(`../pack/${bundledName}`, document.baseURI)); if (r.ok) return r.text(); } catch {}
         return null;
       };
       const save = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], {type})); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
@@ -122,9 +122,14 @@
         const file = input.files?.[0]; if (!file || !status) return;
         try {
           const bytes = new Uint8Array(await file.arrayBuffer());
-          const face = new FontFace("ImportedFont", bytes.slice().buffer);
-          await face.load(); document.fonts.add(face);
-          document.querySelector("#font-sample").style.fontFamily = "ImportedFont";
+          // FontFace 预览并不是制作链路的必要条件；部分浏览器无法直接加载 TTC，
+          // 不能让它阻断后面的 TTC 拆面和子集化。
+          try {
+            const face = new FontFace("ImportedFont", bytes.slice().buffer);
+            await face.load();
+            document.fonts.add(face);
+            document.querySelector("#font-sample").style.fontFamily = "ImportedFont";
+          } catch { /* TTC 预览失败时仍继续生成投递包 */ }
           const [subset, report] = subsetFont(bytes, { traditional: document.querySelector('#charset').value === 'traditional', normalizeMetrics: true });
           subsetBytes = subset;
           fontDownload.disabled = false;
