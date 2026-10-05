@@ -38,6 +38,9 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Write deployment build info
+        run: echo "${GITHUB_SHA}" > dist/build.txt
+
       - name: Verify build output
         run: test -f dist/index.html
 

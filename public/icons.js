@@ -1628,18 +1628,25 @@ document.querySelector("#files").onchange = async (e) => {
   update();
 };
 async function assetText(name) {
-  const r = await fetch("/pack/" + name);
+  const r = await fetch(new URL("../pack/" + name, document.baseURI));
   return r.text();
 }
 async function assetBytes(name) {
-  const r = await fetch("/pack/" + name);
+  const r = await fetch(new URL("../pack/" + name, document.baseURI));
   return new Uint8Array(await r.arrayBuffer());
 }
 function save(b, n) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([b]));
+  const u = URL.createObjectURL(new Blob([b], { type: "application/octet-stream" }));
+  a.href = u;
   a.download = n;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(u);
+  }, 1e3);
 }
 document.querySelector("#export").onclick = async () => {
   try {
