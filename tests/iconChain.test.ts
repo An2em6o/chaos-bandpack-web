@@ -133,11 +133,12 @@ describe("IconConvert", () => {
 });
 
 describe("IconSpec", () => {
-  it("55 个槽位: 桌面 36 + 控制中心 9 + 设置 10", () => {
-    expect(SLOTS.length).toBe(55);
+  it("137 个槽位: 桌面 36 + 控制中心 9 + 设置 10 + 卡包 82", () => {
+    expect(SLOTS.length).toBe(137);
     expect(SLOTS.filter((s) => s.group === "DESKTOP").length).toBe(36);
     expect(SLOTS.filter((s) => s.group === "CONTROL").length).toBe(9);
     expect(SLOTS.filter((s) => s.group === "SETTINGS").length).toBe(10);
+    expect(SLOTS.filter((s) => s.group === "CARD").length).toBe(82);
   });
 
   it("精确匹配英文名或分类中文名; 未注明分类的重名不匹配", () => {

@@ -12,7 +12,7 @@
  *
  * TS 移植自 Kotlin `IconConvert.kt`。像素为 ARGB uint32（与 Android getPixels 同格式）。
  */
-import { CANVAS, CONTENT, MARGIN, OUT_BYTES, CANVAS_HEADER, slotCanvas, slotContent, type Slot } from "./iconSpec";
+import { CANVAS, CONTENT, MARGIN, OUT_BYTES, CANVAS_HEADER, slotCanvas, slotContent, slotSize, type Slot } from "./iconSpec";
 import { bgra } from "./lvglIconCodec";
 
 /** 认定"这里有内容"的 alpha 门（与 PC 侧取同一个值） */
@@ -57,6 +57,11 @@ export function convert(
   h: number,
   slot: Slot,
 ): [Uint8Array, ConvertReport] {
+  if (slot.group === "CARD") {
+    const [width, height] = slotSize(slot);
+    if (w !== width || h !== height || src.length !== w * h) throw new Error(`卡片需要 ${width}×${height} 像素`);
+    return [bgra(src, w, h), {coverage: 1, srcBoxSide: Math.max(w, h), scaled: Math.max(w, h)}];
+  }
   if (slot.group !== "DESKTOP") return convertSystem(src, w, h, slot);
   if (!(w > 0 && h > 0) || src.length < w * h) throw new Error("像素数组与尺寸不匹配");
 

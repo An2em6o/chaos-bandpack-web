@@ -23,18 +23,21 @@ export const CANVAS_HEADER: Uint8Array = (() => {
   return h;
 })();
 
-export type GroupName = "DESKTOP" | "CONTROL" | "SETTINGS";
+export type GroupName = "DESKTOP" | "CONTROL" | "SETTINGS" | "CARD";
 
 export const GROUP_LABEL: Record<GroupName, string> = {
   DESKTOP: "桌面",
   CONTROL: "控制中心",
   SETTINGS: "设置",
+  CARD: "卡包",
 };
 
 export interface Slot {
   stem: string;
   label: string;
   group: GroupName;
+  width?: number;
+  height?: number;
 }
 
 const s = (stem: string, label: string, group: GroupName = "DESKTOP"): Slot => ({ stem, label, group });
@@ -105,7 +108,96 @@ export const SETTINGS: Slot[] = [
   s("set_wrist", "佩戴方式", "SETTINGS"),
 ];
 
-export const SLOTS: Slot[] = [...DESKTOP, ...CONTROL, ...SETTINGS];
+export const CARD: Slot[] = [
+  {stem: "card_access_card_01", label: "access_card_01", group: "CARD", width: 288, height: 170},
+  {stem: "card_access_card_02", label: "access_card_02", group: "CARD", width: 288, height: 170},
+  {stem: "card_access_card_03", label: "access_card_03", group: "CARD", width: 288, height: 170},
+  {stem: "card_access_card_04", label: "access_card_04", group: "CARD", width: 288, height: 170},
+  {stem: "card_access_card_sdoor", label: "access_card_sdoor", group: "CARD", width: 288, height: 170},
+  {stem: "card_access_card_work", label: "access_card_work", group: "CARD", width: 288, height: 170},
+  {stem: "card_bank_card_mastercard", label: "bank_card_mastercard", group: "CARD", width: 288, height: 170},
+  {stem: "card_bank_card_visa", label: "bank_card_visa", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_biyadi", label: "car_card_biyadi", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_brnd", label: "car_card_brnd", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_fangchengbao", label: "car_card_fangchengbao", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_lot1", label: "car_card_lot1", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_tengshi", label: "car_card_tengshi", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_xia1", label: "car_card_xia1", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_yangwang", label: "car_card_yangwang", group: "CARD", width: 288, height: 170},
+  {stem: "card_car_card_yu7", label: "car_card_yu7", group: "CARD", width: 288, height: 170},
+  {stem: "card_ecc", label: "ecc", group: "CARD", width: 288, height: 170},
+  {stem: "card_ecc_student", label: "ecc_student", group: "CARD", width: 278, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuchangzhou", label: "jiangsu/transit_card_jiangsuchangzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuhuaian", label: "jiangsu/transit_card_jiangsuhuaian", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuhuaihai", label: "jiangsu/transit_card_jiangsuhuaihai", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsujinling", label: "jiangsu/transit_card_jiangsujinling", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsukunshan", label: "jiangsu/transit_card_jiangsukunshan", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsulianyungang", label: "jiangsu/transit_card_jiangsulianyungang", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsunantong", label: "jiangsu/transit_card_jiangsunantong", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsusuqian", label: "jiangsu/transit_card_jiangsusuqian", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsusuzhou", label: "jiangsu/transit_card_jiangsusuzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsutaizhou", label: "jiangsu/transit_card_jiangsutaizhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuwuxi", label: "jiangsu/transit_card_jiangsuwuxi", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuyancheng", label: "jiangsu/transit_card_jiangsuyancheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuyangzhou", label: "jiangsu/transit_card_jiangsuyangzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_jiangsu_transit_card_jiangsuzhenjiang", label: "jiangsu/transit_card_jiangsuzhenjiang", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanchaozhou", label: "lingnan/transit_card_lingnanchaozhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanguangfo", label: "lingnan/transit_card_lingnanguangfo", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanheyuanyu", label: "lingnan/transit_card_lingnanheyuanyu", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanhonghai", label: "lingnan/transit_card_lingnanhonghai", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanlingyun", label: "lingnan/transit_card_lingnanlingyun", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanmaocheng", label: "lingnan/transit_card_lingnanmaocheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanmojiang", label: "lingnan/transit_card_lingnanmojiang", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanrongjiang", label: "lingnan/transit_card_lingnanrongjiang", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanshaozhou", label: "lingnan/transit_card_lingnanshaozhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanwuyi", label: "lingnan/transit_card_lingnanwuyi", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanyangcheng", label: "lingnan/transit_card_lingnanyangcheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_lingnan_transit_card_lingnanzhaoqing", label: "lingnan/transit_card_lingnanzhaoqing", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_beijing", label: "transit_card_beijing", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_chongqing", label: "transit_card_chongqing", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_dalian", label: "transit_card_dalian", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_ganzhou", label: "transit_card_ganzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_guangxi", label: "transit_card_guangxi", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_haerbin", label: "transit_card_haerbin", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_hainan", label: "transit_card_hainan", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_hangzhou", label: "transit_card_hangzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_hefei", label: "transit_card_hefei", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_hongcheng", label: "transit_card_hongcheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_hongshan", label: "transit_card_hongshan", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_jilin", label: "transit_card_jilin", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_jinhua", label: "transit_card_jinhua", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_kunming", label: "transit_card_kunming", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_lanzhou", label: "transit_card_lanzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_ningbo", label: "transit_card_ningbo", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_qingdao", label: "transit_card_qingdao", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_quancheng", label: "transit_card_quancheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_rongcheng", label: "transit_card_rongcheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_shanghai", label: "transit_card_shanghai", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_shaoxing", label: "transit_card_shaoxing", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_shengjing", label: "transit_card_shengjing", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_shenzhen", label: "transit_card_shenzhen", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_taizhou", label: "transit_card_taizhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_tianfu", label: "transit_card_tianfu", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_tianjin", label: "transit_card_tianjin", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_tuocheng", label: "transit_card_tuocheng", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_wuhan", label: "transit_card_wuhan", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_xiamen", label: "transit_card_xiamen", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_xian", label: "transit_card_xian", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_xiaoxiang", label: "transit_card_xiaoxiang", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_xizang", label: "transit_card_xizang", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_yanzhao", label: "transit_card_yanzhao", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_yinchuan", label: "transit_card_yinchuan", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_zhengzhou", label: "transit_card_zhengzhou", group: "CARD", width: 288, height: 170},
+  {stem: "card_transit_card_zhuhai", label: "transit_card_zhuhai", group: "CARD", width: 288, height: 170},
+  {stem: "card_widget22", label: "widget22", group: "CARD", width: 304, height: 193},
+  {stem: "card_widget_card_bg", label: "widget_card_bg", group: "CARD", width: 336, height: 210},
+];
+
+export function slotSize(slot: Slot): [number, number] {
+  return [slot.width ?? slotCanvas(slot), slot.height ?? slotCanvas(slot)];
+}
+
+export const SLOTS: Slot[] = [...DESKTOP, ...CONTROL, ...SETTINGS, ...CARD];
 
 export function slotCanvas(slot: Slot): number {
   return slot.group === "DESKTOP" ? CANVAS : 64;
@@ -160,7 +252,7 @@ export function exportIcons(picked: Map<string, Uint8Array>): Icon[] {
     if (!slot) throw new Error(`未知图标槽位: ${stem}`);
     if (normalized.has(slot.stem)) throw new Error(`图标槽位重复: ${slot.label}`);
     const decoded = decode(bin);
-    if (decoded.width !== slotCanvas(slot) || decoded.height !== slotCanvas(slot)) {
+    if (decoded.width !== slotSize(slot)[0] || decoded.height !== slotSize(slot)[1]) {
       throw new Error(`${slot.label}尺寸不匹配`);
     }
     normalized.set(slot.stem, bin);

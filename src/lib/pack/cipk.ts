@@ -12,9 +12,9 @@
 import { readU32, writeU32 } from "./shellWriter";
 
 export const CIPK_MAGIC = "CIPK";
-export const NAME_MAX = 24;
+export const NAME_MAX = 64;
 export const ICON_LEN_MAX = 0x80000; // 单张上限 512KB(与 Lua 侧的门一致)
-export const COUNT_MAX = 64;
+export const COUNT_MAX = 256;
 
 const NAME_RE = /^[A-Za-z0-9_]+\.bin$/;
 const enc = new TextEncoder();
