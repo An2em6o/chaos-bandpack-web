@@ -1478,6 +1478,7 @@ var init_previewFactory = __esm({
 });
 
 // src/scripts_icons.ts
+init_iconSpec();
 var grid = document.querySelector("#grid");
 var count = document.querySelector("#count");
 var status = document.querySelector("#status");
@@ -1493,7 +1494,7 @@ function randomId() {
 document.querySelector("#random-id").onclick = () => {
   document.querySelector("#pkg").value = randomId();
 };
-var slots2 = { DESKTOP: ["activities", "aivs", "alarm", "alipay", "breath", "calendar", "perpetual_calendar", "camera", "card", "chronograph", "compass", "findphone", "flashlight", "heartrate", "interconnect", "mijia", "music", "mute", "oxygen", "pressure", "recorder", "settings", "share", "sleep", "sports", "sports_course", "sports_record", "sports_status", "timer", "todo", "tomato_clock", "vitality", "weather", "womenhealth", "worldclock", "wxpay"], CONTROL: ["ctrl_flashlight", "ctrl_setting", "ctrl_battery", "ctrl_bright", "ctrl_alarm", "ctrl_findphone", "ctrl_disturb", "ctrl_raise", "ctrl_game"], SETTINGS: ["set_notify", "set_desktop", "set_display", "set_disturb", "set_safe"] };
+var slots2 = { DESKTOP: DESKTOP.map((slot) => slot.stem), CONTROL: CONTROL.map((slot) => slot.stem), SETTINGS: SETTINGS.map((slot) => slot.stem) };
 function render() {
   grid.innerHTML = "";
   for (const stem of slots2[group]) {
