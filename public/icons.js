@@ -16,8 +16,8 @@ function recordEnd(fileCount) {
   return REC_OFF + 16 * (2 + fileCount);
 }
 function blobFor(path, data) {
-  for (const ch of path) {
-    const c = ch.codePointAt(0);
+  for (const ch3 of path) {
+    const c = ch3.codePointAt(0);
     if (c < 32 || c >= 127) {
       throw new PackError(`\u69FD\u8DEF\u5F84\u5FC5\u987B\u662F\u53EF\u6253\u5370 ASCII: ${path}`);
     }
@@ -286,8 +286,8 @@ function sha256(data) {
     let e = H[4], f = H[5], g = H[6], h = H[7];
     for (let i = 0; i < 64; i++) {
       const S1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) >>> 0;
-      const ch = (e & f ^ ~e & g) >>> 0;
-      const t1 = h + S1 + ch + K[i] + w[i] >>> 0;
+      const ch3 = (e & f ^ ~e & g) >>> 0;
+      const t1 = h + S1 + ch3 + K[i] + w[i] >>> 0;
       const S0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) >>> 0;
       const maj = (a & b ^ a & c ^ b & c) >>> 0;
       const t2 = S0 + maj >>> 0;
@@ -539,9 +539,9 @@ var init_cipk = __esm({
     "use strict";
     init_shellWriter();
     CIPK_MAGIC = "CIPK";
-    NAME_MAX2 = 24;
+    NAME_MAX2 = 64;
     ICON_LEN_MAX = 524288;
-    COUNT_MAX = 64;
+    COUNT_MAX = 256;
     NAME_RE = /^[A-Za-z0-9_]+\.bin$/;
     enc = new TextEncoder();
     CipkError = class extends Error {
@@ -576,8 +576,8 @@ function bgra(pixels, w, h) {
   }
   return out;
 }
-function channel(color, ch) {
-  return color >>> ch * 8 & 255;
+function channel(color, ch3) {
+  return color >>> ch3 * 8 & 255;
 }
 function indexedRle(pixels, w, h) {
   if (!(w > 0 && h > 0) || pixels.length !== w * h) throw new Error("\u50CF\u7D20\u6570\u4E0E\u5C3A\u5BF8\u4E0D\u5339\u914D");
@@ -614,9 +614,9 @@ function indexedRle(pixels, w, h) {
       const alpha = channel(color, 3);
       const ca = channel(candidate, 3);
       let error = (alpha - ca) * (alpha - ca) * 2;
-      for (let ch = 0; ch <= 2; ch++) {
+      for (let ch3 = 0; ch3 <= 2; ch3++) {
         const delta = Math.trunc(
-          (channel(color, ch) * alpha - channel(candidate, ch) * ca) / 255
+          (channel(color, ch3) * alpha - channel(candidate, ch3) * ca) / 255
         );
         error += delta * delta;
       }
@@ -743,15 +743,15 @@ var init_lvglIconCodec = __esm({
       constructor(colors) {
         this.colors = colors;
         this.ranges = [0, 1, 2, 3].map(
-          (ch) => Math.max(...colors.map((c) => channel(c.color, ch))) - Math.min(...colors.map((c) => channel(c.color, ch)))
+          (ch3) => Math.max(...colors.map((c) => channel(c.color, ch3))) - Math.min(...colors.map((c) => channel(c.color, ch3)))
         );
         let best = 0;
         let bestScore = -Infinity;
-        for (let ch = 0; ch < 4; ch++) {
-          const s2 = this.ranges[ch] * (ch === 3 ? 2 : 1);
-          if (ch === 0 || s2 > bestScore) {
+        for (let ch3 = 0; ch3 < 4; ch3++) {
+          const s2 = this.ranges[ch3] * (ch3 === 3 ? 2 : 1);
+          if (ch3 === 0 || s2 > bestScore) {
             bestScore = s2;
-            best = ch;
+            best = ch3;
           }
         }
         this.splitChannel = best;
@@ -778,11 +778,11 @@ var init_lvglIconCodec = __esm({
       mean() {
         const total = this.colors.reduce((s2, c) => s2 + c.count, 0);
         let result = 0;
-        for (let ch = 0; ch <= 3; ch++) {
+        for (let ch3 = 0; ch3 <= 3; ch3++) {
           const value = Math.floor(
-            (this.colors.reduce((s2, c) => s2 + channel(c.color, ch) * c.count, 0) + Math.floor(total / 2)) / total
+            (this.colors.reduce((s2, c) => s2 + channel(c.color, ch3) * c.count, 0) + Math.floor(total / 2)) / total
           );
-          result |= value << ch * 8;
+          result |= value << ch3 * 8;
         }
         return result >>> 0;
       }
@@ -796,6 +796,7 @@ __export(iconSpec_exports, {
   ABSENT_ON_DEVICE: () => ABSENT_ON_DEVICE,
   CANVAS: () => CANVAS,
   CANVAS_HEADER: () => CANVAS_HEADER,
+  CARD: () => CARD,
   CONTENT: () => CONTENT,
   CONTROL: () => CONTROL,
   DESKTOP: () => DESKTOP,
@@ -811,9 +812,13 @@ __export(iconSpec_exports, {
   previewStems: () => previewStems,
   slotCanvas: () => slotCanvas,
   slotContent: () => slotContent,
+  slotSize: () => slotSize,
   slots: () => slots,
   stemOf: () => stemOf
 });
+function slotSize(slot) {
+  return [slot.width ?? slotCanvas(slot), slot.height ?? slotCanvas(slot)];
+}
 function slotCanvas(slot) {
   return slot.group === "DESKTOP" ? CANVAS : 64;
 }
@@ -854,7 +859,7 @@ function exportIcons(picked2) {
     if (!slot) throw new Error(`\u672A\u77E5\u56FE\u6807\u69FD\u4F4D: ${stem}`);
     if (normalized.has(slot.stem)) throw new Error(`\u56FE\u6807\u69FD\u4F4D\u91CD\u590D: ${slot.label}`);
     const decoded = decode(bin);
-    if (decoded.width !== slotCanvas(slot) || decoded.height !== slotCanvas(slot)) {
+    if (decoded.width !== slotSize(slot)[0] || decoded.height !== slotSize(slot)[1]) {
       throw new Error(`${slot.label}\u5C3A\u5BF8\u4E0D\u5339\u914D`);
     }
     normalized.set(slot.stem, bin);
@@ -874,7 +879,7 @@ function exportIcons(picked2) {
 function devicePath(stem) {
   return `/data/chaos/icons/${stem}.bin`;
 }
-var CANVAS, CONTENT, MARGIN, OUT_BYTES, CANVAS_HEADER, GROUP_LABEL, s, ABSENT_ON_DEVICE, DESKTOP, CONTROL, SETTINGS, SLOTS;
+var CANVAS, CONTENT, MARGIN, OUT_BYTES, CANVAS_HEADER, GROUP_LABEL, s, ABSENT_ON_DEVICE, DESKTOP, CONTROL, SETTINGS, CARD, SLOTS;
 var init_iconSpec = __esm({
   "src/lib/icon/iconSpec.ts"() {
     "use strict";
@@ -897,7 +902,8 @@ var init_iconSpec = __esm({
     GROUP_LABEL = {
       DESKTOP: "\u684C\u9762",
       CONTROL: "\u63A7\u5236\u4E2D\u5FC3",
-      SETTINGS: "\u8BBE\u7F6E"
+      SETTINGS: "\u8BBE\u7F6E",
+      CARD: "\u5361\u5305"
     };
     s = (stem, label, group2 = "DESKTOP") => ({ stem, label, group: group2 });
     ABSENT_ON_DEVICE = /* @__PURE__ */ new Set(["dealt", "innovation_research"]);
@@ -962,7 +968,91 @@ var init_iconSpec = __esm({
       s("set_mydevice", "\u6211\u7684\u8BBE\u5907", "SETTINGS"),
       s("set_wrist", "\u4F69\u6234\u65B9\u5F0F", "SETTINGS")
     ];
-    SLOTS = [...DESKTOP, ...CONTROL, ...SETTINGS];
+    CARD = [
+      { stem: "card_access_card_01", label: "access_card_01", group: "CARD", width: 288, height: 170 },
+      { stem: "card_access_card_02", label: "access_card_02", group: "CARD", width: 288, height: 170 },
+      { stem: "card_access_card_03", label: "access_card_03", group: "CARD", width: 288, height: 170 },
+      { stem: "card_access_card_04", label: "access_card_04", group: "CARD", width: 288, height: 170 },
+      { stem: "card_access_card_sdoor", label: "access_card_sdoor", group: "CARD", width: 288, height: 170 },
+      { stem: "card_access_card_work", label: "access_card_work", group: "CARD", width: 288, height: 170 },
+      { stem: "card_bank_card_mastercard", label: "bank_card_mastercard", group: "CARD", width: 288, height: 170 },
+      { stem: "card_bank_card_visa", label: "bank_card_visa", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_biyadi", label: "car_card_biyadi", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_brnd", label: "car_card_brnd", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_fangchengbao", label: "car_card_fangchengbao", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_lot1", label: "car_card_lot1", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_tengshi", label: "car_card_tengshi", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_xia1", label: "car_card_xia1", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_yangwang", label: "car_card_yangwang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_car_card_yu7", label: "car_card_yu7", group: "CARD", width: 288, height: 170 },
+      { stem: "card_ecc", label: "ecc", group: "CARD", width: 288, height: 170 },
+      { stem: "card_ecc_student", label: "ecc_student", group: "CARD", width: 278, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuchangzhou", label: "jiangsu/transit_card_jiangsuchangzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuhuaian", label: "jiangsu/transit_card_jiangsuhuaian", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuhuaihai", label: "jiangsu/transit_card_jiangsuhuaihai", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsujinling", label: "jiangsu/transit_card_jiangsujinling", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsukunshan", label: "jiangsu/transit_card_jiangsukunshan", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsulianyungang", label: "jiangsu/transit_card_jiangsulianyungang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsunantong", label: "jiangsu/transit_card_jiangsunantong", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsusuqian", label: "jiangsu/transit_card_jiangsusuqian", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsusuzhou", label: "jiangsu/transit_card_jiangsusuzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsutaizhou", label: "jiangsu/transit_card_jiangsutaizhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuwuxi", label: "jiangsu/transit_card_jiangsuwuxi", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuyancheng", label: "jiangsu/transit_card_jiangsuyancheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuyangzhou", label: "jiangsu/transit_card_jiangsuyangzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_jiangsu_transit_card_jiangsuzhenjiang", label: "jiangsu/transit_card_jiangsuzhenjiang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanchaozhou", label: "lingnan/transit_card_lingnanchaozhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanguangfo", label: "lingnan/transit_card_lingnanguangfo", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanheyuanyu", label: "lingnan/transit_card_lingnanheyuanyu", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanhonghai", label: "lingnan/transit_card_lingnanhonghai", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanlingyun", label: "lingnan/transit_card_lingnanlingyun", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanmaocheng", label: "lingnan/transit_card_lingnanmaocheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanmojiang", label: "lingnan/transit_card_lingnanmojiang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanrongjiang", label: "lingnan/transit_card_lingnanrongjiang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanshaozhou", label: "lingnan/transit_card_lingnanshaozhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanwuyi", label: "lingnan/transit_card_lingnanwuyi", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanyangcheng", label: "lingnan/transit_card_lingnanyangcheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_lingnan_transit_card_lingnanzhaoqing", label: "lingnan/transit_card_lingnanzhaoqing", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_beijing", label: "transit_card_beijing", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_chongqing", label: "transit_card_chongqing", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_dalian", label: "transit_card_dalian", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_ganzhou", label: "transit_card_ganzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_guangxi", label: "transit_card_guangxi", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_haerbin", label: "transit_card_haerbin", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_hainan", label: "transit_card_hainan", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_hangzhou", label: "transit_card_hangzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_hefei", label: "transit_card_hefei", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_hongcheng", label: "transit_card_hongcheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_hongshan", label: "transit_card_hongshan", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_jilin", label: "transit_card_jilin", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_jinhua", label: "transit_card_jinhua", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_kunming", label: "transit_card_kunming", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_lanzhou", label: "transit_card_lanzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_ningbo", label: "transit_card_ningbo", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_qingdao", label: "transit_card_qingdao", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_quancheng", label: "transit_card_quancheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_rongcheng", label: "transit_card_rongcheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_shanghai", label: "transit_card_shanghai", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_shaoxing", label: "transit_card_shaoxing", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_shengjing", label: "transit_card_shengjing", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_shenzhen", label: "transit_card_shenzhen", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_taizhou", label: "transit_card_taizhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_tianfu", label: "transit_card_tianfu", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_tianjin", label: "transit_card_tianjin", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_tuocheng", label: "transit_card_tuocheng", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_wuhan", label: "transit_card_wuhan", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_xiamen", label: "transit_card_xiamen", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_xian", label: "transit_card_xian", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_xiaoxiang", label: "transit_card_xiaoxiang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_xizang", label: "transit_card_xizang", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_yanzhao", label: "transit_card_yanzhao", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_yinchuan", label: "transit_card_yinchuan", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_zhengzhou", label: "transit_card_zhengzhou", group: "CARD", width: 288, height: 170 },
+      { stem: "card_transit_card_zhuhai", label: "transit_card_zhuhai", group: "CARD", width: 288, height: 170 },
+      { stem: "card_widget22", label: "widget22", group: "CARD", width: 304, height: 193 },
+      { stem: "card_widget_card_bg", label: "widget_card_bg", group: "CARD", width: 336, height: 210 }
+    ];
+    SLOTS = [...DESKTOP, ...CONTROL, ...SETTINGS, ...CARD];
   }
 });
 
@@ -977,6 +1067,11 @@ __export(iconConvert_exports, {
   convert: () => convert
 });
 function convert(src, w, h, slot) {
+  if (slot.group === "CARD") {
+    const [width2, height] = slotSize(slot);
+    if (w !== width2 || h !== height || src.length !== w * h) throw new Error(`\u5361\u7247\u9700\u8981 ${width2}\xD7${height} \u50CF\u7D20`);
+    return [bgra(src, w, h), { coverage: 1, srcBoxSide: Math.max(w, h), scaled: Math.max(w, h) }];
+  }
   if (slot.group !== "DESKTOP") return convertSystem(src, w, h, slot);
   if (!(w > 0 && h > 0) || src.length < w * h) throw new Error("\u50CF\u7D20\u6570\u7EC4\u4E0E\u5C3A\u5BF8\u4E0D\u5339\u914D");
   let x0 = w, x1 = -1, y0 = h, y1 = -1;
@@ -1231,8 +1326,8 @@ function buildFontPack(a, inputs, preview) {
   if (labelBytes.length === 0 || labelBytes.length > FONT_LABEL_BYTES) {
     throw new PackError(`\u5B57\u4F53\u77ED\u540D\u8981\u5728 1..${FONT_LABEL_BYTES} \u5B57\u8282\u4E4B\u95F4: \u300C${inputs.label}\u300D`);
   }
-  for (const ch of inputs.label) {
-    if (ch.codePointAt(0) < 32) throw new PackError("\u5B57\u4F53\u77ED\u540D\u4E0D\u80FD\u6709\u63A7\u5236\u5B57\u7B26");
+  for (const ch3 of inputs.label) {
+    if (ch3.codePointAt(0) < 32) throw new PackError("\u5B57\u4F53\u77ED\u540D\u4E0D\u80FD\u6709\u63A7\u5236\u5B57\u7B26");
   }
   validate(inputs.title);
   const lua = patchLua(a.fontLua, /* @__PURE__ */ new Map([
@@ -1269,8 +1364,8 @@ function buildIconPack(a, inputs, preview) {
   if (sb.length === 0 || sb.length > SHORT_BYTES) {
     throw new PackError(`\u56FE\u6807\u5305\u77ED\u540D\u8981\u5728 1..${SHORT_BYTES} \u5B57\u8282\u4E4B\u95F4`);
   }
-  for (const ch of inputs.short) {
-    const c = ch.codePointAt(0);
+  for (const ch3 of inputs.short) {
+    const c = ch3.codePointAt(0);
     if (c <= 32 || c >= 127) {
       throw new PackError(`\u56FE\u6807\u5305\u77ED\u540D\u53EA\u80FD\u662F\u53EF\u6253\u5370 ASCII: \u300C${inputs.short}\u300D`);
     }
@@ -1330,11 +1425,11 @@ function countOccurrences(s2, sub) {
 }
 function luaQuote(s2) {
   let out = "";
-  for (const ch of s2) {
-    const c = ch.codePointAt(0);
-    if (ch === '"' || ch === "\\") out += "\\" + ch;
+  for (const ch3 of s2) {
+    const c = ch3.codePointAt(0);
+    if (ch3 === '"' || ch3 === "\\") out += "\\" + ch3;
     else if (c < 32) out += "\\" + c;
-    else out += ch;
+    else out += ch3;
   }
   return out;
 }
@@ -1477,6 +1572,631 @@ var init_previewFactory = __esm({
   }
 });
 
+// node_modules/.pnpm/fflate@0.8.3/node_modules/fflate/esm/browser.js
+var ch2 = {};
+var wk = (function(c, id, msg, transfer, cb) {
+  var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
+    c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
+  ], { type: "text/javascript" }))));
+  w.onmessage = function(e) {
+    var d = e.data, ed = d.$e$;
+    if (ed) {
+      var err2 = new Error(ed[0]);
+      err2["code"] = ed[1];
+      err2.stack = ed[2];
+      cb(err2, null);
+    } else
+      cb(null, d);
+  };
+  w.postMessage(msg, transfer);
+  return w;
+});
+var u8 = Uint8Array;
+var u16 = Uint16Array;
+var i32 = Int32Array;
+var fleb = new u8([
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  1,
+  1,
+  2,
+  2,
+  2,
+  2,
+  3,
+  3,
+  3,
+  3,
+  4,
+  4,
+  4,
+  4,
+  5,
+  5,
+  5,
+  5,
+  0,
+  /* unused */
+  0,
+  0,
+  /* impossible */
+  0
+]);
+var fdeb = new u8([
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  2,
+  2,
+  3,
+  3,
+  4,
+  4,
+  5,
+  5,
+  6,
+  6,
+  7,
+  7,
+  8,
+  8,
+  9,
+  9,
+  10,
+  10,
+  11,
+  11,
+  12,
+  12,
+  13,
+  13,
+  /* unused */
+  0,
+  0
+]);
+var clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
+var freb = function(eb, start) {
+  var b = new u16(31);
+  for (var i = 0; i < 31; ++i) {
+    b[i] = start += 1 << eb[i - 1];
+  }
+  var r = new i32(b[30]);
+  for (var i = 1; i < 30; ++i) {
+    for (var j = b[i]; j < b[i + 1]; ++j) {
+      r[j] = j - b[i] << 5 | i;
+    }
+  }
+  return { b, r };
+};
+var _a = freb(fleb, 2);
+var fl = _a.b;
+var revfl = _a.r;
+fl[28] = 258, revfl[258] = 28;
+var _b = freb(fdeb, 0);
+var fd = _b.b;
+var revfd = _b.r;
+var rev = new u16(32768);
+for (i = 0; i < 32768; ++i) {
+  x = (i & 43690) >> 1 | (i & 21845) << 1;
+  x = (x & 52428) >> 2 | (x & 13107) << 2;
+  x = (x & 61680) >> 4 | (x & 3855) << 4;
+  rev[i] = ((x & 65280) >> 8 | (x & 255) << 8) >> 1;
+}
+var x;
+var i;
+var hMap = (function(cd, mb, r) {
+  var s2 = cd.length;
+  var i = 0;
+  var l = new u16(mb);
+  for (; i < s2; ++i) {
+    if (cd[i])
+      ++l[cd[i] - 1];
+  }
+  var le = new u16(mb);
+  for (i = 1; i < mb; ++i) {
+    le[i] = le[i - 1] + l[i - 1] << 1;
+  }
+  var co;
+  if (r) {
+    co = new u16(1 << mb);
+    var rvb = 15 - mb;
+    for (i = 0; i < s2; ++i) {
+      if (cd[i]) {
+        var sv = i << 4 | cd[i];
+        var r_1 = mb - cd[i];
+        var v = le[cd[i] - 1]++ << r_1;
+        for (var m = v | (1 << r_1) - 1; v <= m; ++v) {
+          co[rev[v] >> rvb] = sv;
+        }
+      }
+    }
+  } else {
+    co = new u16(s2);
+    for (i = 0; i < s2; ++i) {
+      if (cd[i]) {
+        co[i] = rev[le[cd[i] - 1]++] >> 15 - cd[i];
+      }
+    }
+  }
+  return co;
+});
+var flt = new u8(288);
+for (i = 0; i < 144; ++i)
+  flt[i] = 8;
+var i;
+for (i = 144; i < 256; ++i)
+  flt[i] = 9;
+var i;
+for (i = 256; i < 280; ++i)
+  flt[i] = 7;
+var i;
+for (i = 280; i < 288; ++i)
+  flt[i] = 8;
+var i;
+var fdt = new u8(32);
+for (i = 0; i < 32; ++i)
+  fdt[i] = 5;
+var i;
+var flrm = /* @__PURE__ */ hMap(flt, 9, 1);
+var fdrm = /* @__PURE__ */ hMap(fdt, 5, 1);
+var max = function(a) {
+  var m = a[0];
+  for (var i = 1; i < a.length; ++i) {
+    if (a[i] > m)
+      m = a[i];
+  }
+  return m;
+};
+var bits = function(d, p, m) {
+  var o = p / 8 | 0;
+  return (d[o] | d[o + 1] << 8) >> (p & 7) & m;
+};
+var bits16 = function(d, p) {
+  var o = p / 8 | 0;
+  return (d[o] | d[o + 1] << 8 | d[o + 2] << 16) >> (p & 7);
+};
+var shft = function(p) {
+  return (p + 7) / 8 | 0;
+};
+var slc = function(v, s2, e) {
+  if (s2 == null || s2 < 0)
+    s2 = 0;
+  if (e == null || e > v.length)
+    e = v.length;
+  return new u8(v.subarray(s2, e));
+};
+var ec = [
+  "unexpected EOF",
+  "invalid block type",
+  "invalid length/literal",
+  "invalid distance",
+  "stream finished",
+  "no stream handler",
+  ,
+  // determined by compression function
+  "no callback",
+  "invalid UTF-8 data",
+  "extra field too long",
+  "date not in range 1980-2099",
+  "filename too long",
+  "stream finishing",
+  "invalid zip data"
+  // determined by unknown compression method
+];
+var err = function(ind, msg, nt) {
+  var e = new Error(msg || ec[ind]);
+  e.code = ind;
+  if (Error.captureStackTrace)
+    Error.captureStackTrace(e, err);
+  if (!nt)
+    throw e;
+  return e;
+};
+var inflt = function(dat, st, buf, dict) {
+  var sl = dat.length, dl = dict ? dict.length : 0;
+  if (!sl || st.f && !st.l)
+    return buf || new u8(0);
+  var noBuf = !buf;
+  var resize = noBuf || st.i != 2;
+  var noSt = st.i;
+  if (noBuf)
+    buf = new u8(sl * 3);
+  var cbuf = function(l2) {
+    var bl = buf.length;
+    if (l2 > bl) {
+      var nbuf = new u8(Math.max(bl * 2, l2));
+      nbuf.set(buf);
+      buf = nbuf;
+    }
+  };
+  var final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
+  var tbts = sl * 8;
+  do {
+    if (!lm) {
+      final = bits(dat, pos, 1);
+      var type = bits(dat, pos + 1, 3);
+      pos += 3;
+      if (!type) {
+        var s2 = shft(pos) + 4, l = dat[s2 - 4] | dat[s2 - 3] << 8, t = s2 + l;
+        if (t > sl) {
+          if (noSt)
+            err(0);
+          break;
+        }
+        if (resize)
+          cbuf(bt + l);
+        buf.set(dat.subarray(s2, t), bt);
+        st.b = bt += l, st.p = pos = t * 8, st.f = final;
+        continue;
+      } else if (type == 1)
+        lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
+      else if (type == 2) {
+        var hLit = bits(dat, pos, 31) + 257, hcLen = bits(dat, pos + 10, 15) + 4;
+        var tl = hLit + bits(dat, pos + 5, 31) + 1;
+        pos += 14;
+        var ldt = new u8(tl);
+        var clt = new u8(19);
+        for (var i = 0; i < hcLen; ++i) {
+          clt[clim[i]] = bits(dat, pos + i * 3, 7);
+        }
+        pos += hcLen * 3;
+        var clb = max(clt), clbmsk = (1 << clb) - 1;
+        var clm = hMap(clt, clb, 1);
+        for (var i = 0; i < tl; ) {
+          var r = clm[bits(dat, pos, clbmsk)];
+          pos += r & 15;
+          var s2 = r >> 4;
+          if (s2 < 16) {
+            ldt[i++] = s2;
+          } else {
+            var c = 0, n = 0;
+            if (s2 == 16)
+              n = 3 + bits(dat, pos, 3), pos += 2, c = ldt[i - 1];
+            else if (s2 == 17)
+              n = 3 + bits(dat, pos, 7), pos += 3;
+            else if (s2 == 18)
+              n = 11 + bits(dat, pos, 127), pos += 7;
+            while (n--)
+              ldt[i++] = c;
+          }
+        }
+        var lt = ldt.subarray(0, hLit), dt = ldt.subarray(hLit);
+        lbt = max(lt);
+        dbt = max(dt);
+        lm = hMap(lt, lbt, 1);
+        dm = hMap(dt, dbt, 1);
+      } else
+        err(1);
+      if (pos > tbts) {
+        if (noSt)
+          err(0);
+        break;
+      }
+    }
+    if (resize)
+      cbuf(bt + 131072);
+    var lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
+    var lpos = pos;
+    for (; ; lpos = pos) {
+      var c = lm[bits16(dat, pos) & lms], sym = c >> 4;
+      pos += c & 15;
+      if (pos > tbts) {
+        if (noSt)
+          err(0);
+        break;
+      }
+      if (!c)
+        err(2);
+      if (sym < 256)
+        buf[bt++] = sym;
+      else if (sym == 256) {
+        lpos = pos, lm = null;
+        break;
+      } else {
+        var add = sym - 254;
+        if (sym > 264) {
+          var i = sym - 257, b = fleb[i];
+          add = bits(dat, pos, (1 << b) - 1) + fl[i];
+          pos += b;
+        }
+        var d = dm[bits16(dat, pos) & dms], dsym = d >> 4;
+        if (!d)
+          err(3);
+        pos += d & 15;
+        var dt = fd[dsym];
+        if (dsym > 3) {
+          var b = fdeb[dsym];
+          dt += bits16(dat, pos) & (1 << b) - 1, pos += b;
+        }
+        if (pos > tbts) {
+          if (noSt)
+            err(0);
+          break;
+        }
+        if (resize)
+          cbuf(bt + 131072);
+        var end = bt + add;
+        if (bt < dt) {
+          var shift = dl - dt, dend = Math.min(dt, end);
+          if (shift + bt < 0)
+            err(3);
+          for (; bt < dend; ++bt)
+            buf[bt] = dict[shift + bt];
+        }
+        for (; bt < end; ++bt)
+          buf[bt] = buf[bt - dt];
+      }
+    }
+    st.l = lm, st.p = lpos, st.b = bt, st.f = final;
+    if (lm)
+      final = 1, st.m = lbt, st.d = dm, st.n = dbt;
+  } while (!final);
+  return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+};
+var et = /* @__PURE__ */ new u8(0);
+var mrg = function(a, b) {
+  var o = {};
+  for (var k in a)
+    o[k] = a[k];
+  for (var k in b)
+    o[k] = b[k];
+  return o;
+};
+var wcln = function(fn, fnStr, td2) {
+  var dt = fn();
+  var st = fn.toString();
+  var ks = st.slice(st.indexOf("[") + 1, st.lastIndexOf("]")).replace(/\s+/g, "").split(",");
+  for (var i = 0; i < dt.length; ++i) {
+    var v = dt[i], k = ks[i];
+    if (typeof v == "function") {
+      fnStr += ";" + k + "=";
+      var st_1 = v.toString();
+      if (v.prototype) {
+        if (st_1.indexOf("[native code]") != -1) {
+          var spInd = st_1.indexOf(" ", 8) + 1;
+          fnStr += st_1.slice(spInd, st_1.indexOf("(", spInd));
+        } else {
+          fnStr += st_1;
+          for (var t in v.prototype)
+            fnStr += ";" + k + ".prototype." + t + "=" + v.prototype[t].toString();
+        }
+      } else
+        fnStr += st_1;
+    } else
+      td2[k] = v;
+  }
+  return fnStr;
+};
+var ch = [];
+var cbfs = function(v) {
+  var tl = [];
+  for (var k in v) {
+    if (v[k].buffer) {
+      tl.push((v[k] = new v[k].constructor(v[k])).buffer);
+    }
+  }
+  return tl;
+};
+var wrkr = function(fns, init, id, cb) {
+  if (!ch[id]) {
+    var fnStr = "", td_1 = {}, m = fns.length - 1;
+    for (var i = 0; i < m; ++i)
+      fnStr = wcln(fns[i], fnStr, td_1);
+    ch[id] = { c: wcln(fns[m], fnStr, td_1), e: td_1 };
+  }
+  var td2 = mrg({}, ch[id].e);
+  return wk(ch[id].c + ";onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=" + init.toString() + "}", id, td2, cbfs(td2), cb);
+};
+var bInflt = function() {
+  return [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gopt];
+};
+var pbf = function(msg) {
+  return postMessage(msg, [msg.buffer]);
+};
+var gopt = function(o) {
+  return o && {
+    out: o.size && new u8(o.size),
+    dictionary: o.dictionary
+  };
+};
+var cbify = function(dat, opts, fns, init, id, cb) {
+  var w = wrkr(fns, init, id, function(err2, dat2) {
+    w.terminate();
+    cb(err2, dat2);
+  });
+  w.postMessage([dat, opts], opts.consume ? [dat.buffer] : []);
+  return function() {
+    w.terminate();
+  };
+};
+var b2 = function(d, b) {
+  return d[b] | d[b + 1] << 8;
+};
+var b4 = function(d, b) {
+  return (d[b] | d[b + 1] << 8 | d[b + 2] << 16 | d[b + 3] << 24) >>> 0;
+};
+var b8 = function(d, b) {
+  return b4(d, b) + b4(d, b + 4) * 4294967296;
+};
+function inflate(data, opts, cb) {
+  if (!cb)
+    cb = opts, opts = {};
+  if (typeof cb != "function")
+    err(7);
+  return cbify(data, opts, [
+    bInflt
+  ], function(ev) {
+    return pbf(inflateSync(ev.data[0], gopt(ev.data[1])));
+  }, 1, cb);
+}
+function inflateSync(data, opts) {
+  return inflt(data, { i: 2 }, opts && opts.out, opts && opts.dictionary);
+}
+var td = typeof TextDecoder != "undefined" && /* @__PURE__ */ new TextDecoder();
+var tds = 0;
+try {
+  td.decode(et, { stream: true });
+  tds = 1;
+} catch (e) {
+}
+var dutf8 = function(d) {
+  for (var r = "", i = 0; ; ) {
+    var c = d[i++];
+    var eb = (c > 127) + (c > 223) + (c > 239);
+    if (i + eb > d.length)
+      return { s: r, r: slc(d, i - 1) };
+    if (!eb)
+      r += String.fromCharCode(c);
+    else if (eb == 3) {
+      c = ((c & 15) << 18 | (d[i++] & 63) << 12 | (d[i++] & 63) << 6 | d[i++] & 63) - 65536, r += String.fromCharCode(55296 | c >> 10, 56320 | c & 1023);
+    } else if (eb & 1)
+      r += String.fromCharCode((c & 31) << 6 | d[i++] & 63);
+    else
+      r += String.fromCharCode((c & 15) << 12 | (d[i++] & 63) << 6 | d[i++] & 63);
+  }
+};
+function strFromU8(dat, latin1) {
+  if (latin1) {
+    var r = "";
+    for (var i = 0; i < dat.length; i += 16384)
+      r += String.fromCharCode.apply(null, dat.subarray(i, i + 16384));
+    return r;
+  } else if (td) {
+    return td.decode(dat);
+  } else {
+    var _a2 = dutf8(dat), s2 = _a2.s, r = _a2.r;
+    if (r.length)
+      err(8);
+    return s2;
+  }
+}
+var slzh = function(d, b) {
+  return b + 30 + b2(d, b + 26) + b2(d, b + 28);
+};
+var zh = function(d, b, z) {
+  var fnl = b2(d, b + 28), efl = b2(d, b + 30), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl;
+  var _a2 = z64hs(d, es, efl, z, b4(d, b + 20), b4(d, b + 24), b4(d, b + 42)), sc = _a2[0], su = _a2[1], off = _a2[2];
+  return [b2(d, b + 10), sc, su, fn, es + efl + b2(d, b + 32), off];
+};
+var z64hs = function(d, b, l, z, sc, su, off) {
+  var nsc = sc == 4294967295, nsu = su == 4294967295, noff = off == 4294967295, e = b + l;
+  var nf = nsc + nsu + noff;
+  if (z && nf) {
+    for (; b + 4 < e; b += 4 + b2(d, b + 2)) {
+      if (b2(d, b) == 1) {
+        return [
+          nsc ? b8(d, b + 4 + 8 * nsu) : sc,
+          nsu ? b8(d, b + 4) : su,
+          noff ? b8(d, b + 4 + 8 * (nsu + nsc)) : off,
+          1
+        ];
+      }
+    }
+    if (z < 2)
+      err(13);
+  }
+  return [sc, su, off, 0];
+};
+var mt = typeof queueMicrotask == "function" ? queueMicrotask : typeof setTimeout == "function" ? setTimeout : function(fn) {
+  fn();
+};
+function unzip(data, opts, cb) {
+  if (!cb)
+    cb = opts, opts = {};
+  if (typeof cb != "function")
+    err(7);
+  var term = [];
+  var tAll = function() {
+    for (var i2 = 0; i2 < term.length; ++i2)
+      term[i2]();
+  };
+  var files = {};
+  var cbd = function(a, b) {
+    mt(function() {
+      cb(a, b);
+    });
+  };
+  mt(function() {
+    cbd = cb;
+  });
+  var e = data.length - 22;
+  for (; b4(data, e) != 101010256; --e) {
+    if (!e || data.length - e > 65558) {
+      cbd(err(13, 0, 1), null);
+      return tAll;
+    }
+  }
+  ;
+  var lft = b2(data, e + 8);
+  if (lft) {
+    var c = lft;
+    var o = b4(data, e + 16);
+    var z = b4(data, e - 20) == 117853008;
+    if (z) {
+      var ze = b4(data, e - 12);
+      z = b4(data, ze) == 101075792;
+      if (z) {
+        c = lft = b4(data, ze + 32);
+        o = b4(data, ze + 48);
+      }
+    }
+    var fltr = opts && opts.filter;
+    var _loop_3 = function(i2) {
+      var _a2 = zh(data, o, z), c_1 = _a2[0], sc = _a2[1], su = _a2[2], fn = _a2[3], no = _a2[4], off = _a2[5], b = slzh(data, off);
+      o = no;
+      var cbl = function(e2, d) {
+        if (e2) {
+          tAll();
+          cbd(e2, null);
+        } else {
+          if (d)
+            files[fn] = d;
+          if (!--lft)
+            cbd(null, files);
+        }
+      };
+      if (!fltr || fltr({
+        name: fn,
+        size: sc,
+        originalSize: su,
+        compression: c_1
+      })) {
+        if (!c_1)
+          cbl(null, slc(data, b, b + sc));
+        else if (c_1 == 8) {
+          var infl = data.subarray(b, b + sc);
+          if (su < 524288 || sc > 0.8 * su) {
+            try {
+              cbl(null, inflateSync(infl, { out: new u8(su) }));
+            } catch (e2) {
+              cbl(e2, null);
+            }
+          } else
+            term.push(inflate(infl, { size: su }, cbl));
+        } else
+          cbl(err(14, "unknown compression type " + c_1, 1), null);
+      } else
+        cbl(null, null);
+    };
+    for (var i = 0; i < c; ++i) {
+      _loop_3(i);
+    }
+  } else
+    cbd(null, {});
+  return tAll;
+}
+
 // src/scripts_icons.ts
 init_iconSpec();
 var grid = document.querySelector("#grid");
@@ -1494,7 +2214,7 @@ function randomId() {
 document.querySelector("#random-id").onclick = () => {
   document.querySelector("#pkg").value = randomId();
 };
-var slots2 = { DESKTOP: DESKTOP.map((slot) => slot.stem), CONTROL: CONTROL.map((slot) => slot.stem), SETTINGS: SETTINGS.map((slot) => slot.stem) };
+var slots2 = { DESKTOP: DESKTOP.map((slot) => slot.stem), CONTROL: CONTROL.map((slot) => slot.stem), SETTINGS: SETTINGS.map((slot) => slot.stem), CARD: CARD.map((slot) => slot.stem) };
 function render() {
   grid.innerHTML = "";
   for (const stem of slots2[group]) {
@@ -1555,9 +2275,9 @@ function chooseReplacement(stem) {
     const file = input.files?.[0];
     if (!file) return;
     const bm = await createImageBitmap(file);
-    const expected = stem.startsWith("ctrl_") || stem.startsWith("set_") ? 64 : 112;
-    if (bm.width !== expected || bm.height !== expected) {
-      status.textContent = `${stem} \u5FC5\u987B\u9009\u62E9 ${expected}\xD7${expected} PNG`;
+    const [width2, height] = slotSize(stemOf(stem));
+    if (bm.width !== width2 || bm.height !== height) {
+      status.textContent = `${stem} \u5FC5\u987B\u9009\u62E9 ${width2}\xD7${height} PNG`;
       return;
     }
     const c = document.createElement("canvas");
@@ -1583,7 +2303,7 @@ for (const t of document.querySelectorAll(".tab")) t.onclick = () => {
   render();
 };
 document.querySelector("#clear").onclick = () => {
-  if (!confirm(`\u786E\u5B9A\u6E05\u7A7A\u5F53\u524D\u201C${group === "DESKTOP" ? "\u684C\u9762" : group === "CONTROL" ? "\u63A7\u5236\u4E2D\u5FC3" : "\u8BBE\u7F6E"}\u201D\u9875\u9762\u7684\u5168\u90E8\u66FF\u6362\u56FE\u6807\u5E76\u6062\u590D\u5B98\u65B9\u56FE\u6807\u5417\uFF1F`)) return;
+  if (!confirm(`\u786E\u5B9A\u6E05\u7A7A\u5F53\u524D\u201C${GROUP_LABEL[group]}\u201D\u9875\u9762\u7684\u5168\u90E8\u66FF\u6362\u56FE\u6807\u5E76\u6062\u590D\u5B98\u65B9\u56FE\u6807\u5417\uFF1F`)) return;
   for (const stem of slots2[group]) {
     picked.delete(stem);
     replacementUrls.delete(stem);
@@ -1592,41 +2312,62 @@ document.querySelector("#clear").onclick = () => {
   update();
 };
 render();
-document.querySelector("#files").onchange = async (e) => {
-  const { stemOf: stemOf2 } = await Promise.resolve().then(() => (init_iconSpec(), iconSpec_exports));
-  let matched = 0;
-  let rejected = 0;
-  for (const file of e.target.files) {
-    if (file.type && file.type !== "image/png") {
-      rejected++;
-      continue;
-    }
-    const raw = file.name.replace(/\.[^.]+$/, "").toLowerCase();
-    const slot = stemOf2(raw);
-    if (!slot) {
-      rejected++;
-      continue;
-    }
-    const bm = await createImageBitmap(file);
-    const expected = slot.group === "DESKTOP" ? 112 : 64;
-    if (bm.width !== expected || bm.height !== expected) {
-      rejected++;
-      continue;
-    }
+async function importNamedPng(file) {
+  if (!/\.png$/i.test(file.name)) return false;
+  const slot = matchName(file.name.replace(/\.[^.]+$/, ""));
+  if (!slot) return false;
+  const signature = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  if (![137, 80, 78, 71, 13, 10, 26, 10].every((v, i) => signature[i] === v)) return false;
+  const bm = await createImageBitmap(file);
+  try {
+    const [width2, height] = slotSize(slot);
+    if (bm.width !== width2 || bm.height !== height) return false;
     const c = document.createElement("canvas");
-    c.width = bm.width;
-    c.height = bm.height;
-    c.getContext("2d").drawImage(bm, 0, 0);
-    picked.set(slot.stem, c.getContext("2d").getImageData(0, 0, c.width, c.height));
+    c.width = width2;
+    c.height = height;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(bm, 0, 0);
+    picked.set(slot.stem, ctx.getImageData(0, 0, width2, height));
     replacementUrls.set(slot.stem, c.toDataURL("image/png"));
-    matched++;
+    return true;
+  } finally {
+    bm.close();
   }
-  if (!matched) {
-    status.textContent = "\u8BF7\u4E0A\u4F20\u7B26\u5408\u540D\u79F0\u7684png\u56FE\u7247";
-  } else {
-    status.textContent = `\u5DF2\u5BFC\u5165 ${matched} \u5F20\u56FE\u6807${rejected ? `\uFF0C\u8DF3\u8FC7 ${rejected} \u5F20` : ""}`;
+}
+document.querySelector("#files").onchange = async (e) => {
+  const input = e.target, files = Array.from(input.files || []);
+  let matched = 0, rejected = 0;
+  const errors = [];
+  status.textContent = "\u6B63\u5728\u5BFC\u5165\u2026";
+  input.disabled = true;
+  try {
+    for (const file of files) {
+      let candidates = [file];
+      if (/\.zip$/i.test(file.name)) {
+        try {
+          const awaitBuffer = await file.arrayBuffer();
+          const entries = await new Promise((resolve, reject) => unzip(new Uint8Array(awaitBuffer), (err2, data) => err2 ? reject(err2) : resolve(data)));
+          candidates = Object.entries(entries).filter(([path]) => !path.endsWith("/") && !path.startsWith("__MACOSX/") && /\.png$/i.test(path)).map(([path, data]) => new File([data], path.split(/[\\/]/).pop(), { type: "image/png" }));
+        } catch {
+          errors.push(`\u65E0\u6CD5\u89E3\u538B ${file.name}`);
+          continue;
+        }
+      }
+      for (const candidate of candidates) {
+        try {
+          if (await importNamedPng(candidate)) matched++;
+          else rejected++;
+        } catch {
+          rejected++;
+        }
+      }
+    }
+    status.textContent = (matched ? `\u5DF2\u5BFC\u5165 ${matched} \u5F20\u56FE\u6807${rejected ? `\uFF0C\u8DF3\u8FC7 ${rejected} \u5F20` : ""}` : "\u8BF7\u4E0A\u4F20\u7B26\u5408\u540D\u79F0\u548C\u5C3A\u5BF8\u7684 PNG \u56FE\u7247\u6216 ZIP \u538B\u7F29\u5305") + (errors.length ? `\uFF1B${errors.join("\uFF1B")}` : "");
+  } finally {
+    input.disabled = false;
+    input.value = "";
+    update();
   }
-  update();
 };
 async function assetText(name) {
   const r = await fetch(new URL("../pack/" + name, document.baseURI));
