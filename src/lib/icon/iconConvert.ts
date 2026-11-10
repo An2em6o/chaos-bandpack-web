@@ -157,7 +157,7 @@ function convertSystem(
  * Lanczos-3，可分离（先横后竖），预乘 alpha。
  * 用 Math.fround 模拟 Kotlin FloatArray 的 float32 存储，保证与 Android 侧同结果。
  */
-function scaleBox(
+export function scaleBox(
   src: Uint32Array,
   srcW: number,
   bx: number,

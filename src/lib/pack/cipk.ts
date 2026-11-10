@@ -14,6 +14,8 @@ import { readU32, writeU32 } from "./shellWriter";
 export const CIPK_MAGIC = "CIPK";
 export const NAME_MAX = 64;
 export const ICON_LEN_MAX = 0x80000; // 单张上限 512KB(与 Lua 侧的门一致)
+export const ANIMATION_LEN_MAX = 0x100000;
+export const CIPK_LEN_MAX = 0xffffff;
 export const COUNT_MAX = 256;
 
 const NAME_RE = /^[A-Za-z0-9_]+\.bin$/;
@@ -40,6 +42,10 @@ export function fileNameOf(i: Icon): string {
   return `${i.stem}.bin`;
 }
 
+export function resourceLimit(name: string): number {
+  return name.endsWith('_anim.bin') ? ANIMATION_LEN_MAX : ICON_LEN_MAX;
+}
+
 export function buildCipk(icons: readonly Icon[]): Uint8Array {
   if (icons.length === 0) throw new CipkError("一张图标都没有, 打不出包");
   if (icons.length > COUNT_MAX) throw new CipkError(`图标张数超过上限 ${COUNT_MAX}`);
@@ -57,9 +63,10 @@ export function buildCipk(icons: readonly Icon[]): Uint8Array {
     if (!NAME_RE.test(fileNameOf(i))) throw new CipkError(`图标文件名不合规: ${fileNameOf(i)}`);
     if (seen.has(i.stem)) throw new CipkError(`图标重复: ${i.stem}`);
     seen.add(i.stem);
-    if (i.data.length === 0 || i.data.length > ICON_LEN_MAX) {
-      throw new CipkError(`${fileNameOf(i)} 长度 ${i.data.length} 超出单张上限 ${ICON_LEN_MAX}`);
+    if (i.data.length === 0 || i.data.length > resourceLimit(fileNameOf(i))) {
+      throw new CipkError(`${fileNameOf(i)} 长度 ${i.data.length} 超出上限 ${resourceLimit(fileNameOf(i))}`);
     }
+    if (total + 5 + nb.length + i.data.length > CIPK_LEN_MAX) throw new CipkError('pack.bin 超过 16777215 字节');
     const piece = new Uint8Array(5 + nb.length + i.data.length);
     writeU32(piece, 0, i.data.length);
     piece[4] = nb.length;
@@ -79,12 +86,14 @@ export function buildCipk(icons: readonly Icon[]): Uint8Array {
 
 /** 解回来(自检与测试用)。任何越界/坏长度直接抛。 */
 export function parseCipk(blob: Uint8Array): Array<[string, Uint8Array]> {
+  if (blob.length > CIPK_LEN_MAX) throw new CipkError('pack.bin 超过 16777215 字节');
   if (blob.length < 8 || new TextDecoder("ascii").decode(blob.subarray(0, 4)) !== CIPK_MAGIC) {
     throw new CipkError("CIPK 魔数不符");
   }
   const count = readU32(blob, 4);
   if (count < 1 || count > COUNT_MAX) throw new CipkError(`张数非法: ${count}`);
   const out: Array<[string, Uint8Array]> = [];
+  const seen = new Set<string>();
   let pos = 8;
   for (let idx = 0; idx < count; idx++) {
     if (pos + 5 > blob.length) throw new CipkError(`第 ${idx + 1} 张长度头越界`);
@@ -95,6 +104,9 @@ export function parseCipk(blob: Uint8Array): Array<[string, Uint8Array]> {
     if (pos + nl > blob.length) throw new CipkError(`第 ${idx + 1} 张名字越界`);
     const name = new TextDecoder("ascii").decode(blob.subarray(pos, pos + nl));
     if (!NAME_RE.test(name)) throw new CipkError(`第 ${idx + 1} 张名字不合规: ${name}`);
+    if (seen.has(name)) throw new CipkError(`图标重复: ${name}`);
+    seen.add(name);
+    if (len < 1 || len > resourceLimit(name)) throw new CipkError(`${name} 长度超出上限`);
     pos += nl;
     if (pos + len > blob.length) throw new CipkError(`第 ${idx + 1} 张数据越界`);
     out.push([name, blob.slice(pos, pos + len)]);

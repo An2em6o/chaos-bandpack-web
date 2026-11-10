@@ -41,6 +41,7 @@ import {
 
 export const MAGIC = 0x1234a55a;
 export const DEVICE_CODE = 0x10000;
+export const P67_VERSION = 0x00010107;
 export const PREVIEW_TAG = 0x410;
 export const PREVIEW_HDR = 12;
 
@@ -227,8 +228,8 @@ export function previewOf(raw: Uint8Array): Uint8Array {
 export function parse(raw: Uint8Array): Parsed {
   if (raw.length < REC_OFF + 16 * 3) throw new PackError("容器太短");
   if (readU32(raw, 0) !== MAGIC) throw new PackError("容器魔数不符");
-  if (readU32(raw, 4) !== DEVICE_CODE) {
-    throw new PackError("设备码不是 10 Pro(0x10000)");
+  if (![DEVICE_CODE, P67_VERSION].includes(readU32(raw, 4))) {
+    throw new PackError("不是受支持的 p67 容器版本");
   }
   const n = readU32(raw, FILE_CNT_OFF);
   if (n < 1 || n > 255) throw new PackError(`文件条数非法: ${n}`);

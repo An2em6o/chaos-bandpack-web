@@ -4,15 +4,15 @@ self.onmessage = (event: MessageEvent) => {
     const { type, indices, palette, width, height, image } = event.data;
     if (type === "image") {
       const out = imageDataPreview(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height));
-      self.postMessage({ ok: true, data: out }, [out.buffer]);
+      self.postMessage({ ok: true, data: out }, { transfer: [out.buffer as ArrayBuffer] });
       return;
     }
     if (type === "encode") {
       const out = encodePreview(new Uint8Array(indices), new Uint8Array(palette), width, height);
-      self.postMessage({ ok: true, data: out }, [out.buffer]);
+      self.postMessage({ ok: true, data: out }, { transfer: [out.buffer as ArrayBuffer] });
     } else if (type === "decode") {
       const out = decodePreview(new Uint8Array(indices));
-      self.postMessage({ ok: true, ...out }, [out.palette.buffer, out.indices.buffer]);
+      self.postMessage({ ok: true, ...out }, { transfer: [out.palette.buffer as ArrayBuffer, out.indices.buffer as ArrayBuffer] });
     }
   } catch (error) { self.postMessage({ ok: false, error: error instanceof Error ? error.message : String(error) }); }
 };

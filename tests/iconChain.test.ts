@@ -133,11 +133,11 @@ describe("IconConvert", () => {
 });
 
 describe("IconSpec", () => {
-  it("137 个槽位: 桌面 36 + 控制中心 9 + 设置 10 + 卡包 82", () => {
-    expect(SLOTS.length).toBe(137);
-    expect(SLOTS.filter((s) => s.group === "DESKTOP").length).toBe(36);
-    expect(SLOTS.filter((s) => s.group === "CONTROL").length).toBe(9);
-    expect(SLOTS.filter((s) => s.group === "SETTINGS").length).toBe(10);
+  it("144 个槽位: 桌面 38 + 控制中心 12 + 设置与日历 12 + 卡包 82", () => {
+    expect(SLOTS.length).toBe(144);
+    expect(SLOTS.filter((s) => s.group === "DESKTOP").length).toBe(38);
+    expect(SLOTS.filter((s) => s.group === "CONTROL").length).toBe(12);
+    expect(SLOTS.filter((s) => s.group === "SETTINGS").length).toBe(12);
     expect(SLOTS.filter((s) => s.group === "CARD").length).toBe(82);
   });
 
@@ -190,11 +190,10 @@ describe("IconSpec", () => {
 
     const p = parseShell(res.bytes);
     expect(p.files.map(([path]) => path)).toEqual([
-      "_lua/iconpack/main.lua", "_lua/iconpack/chaos_sup.ko",
-      "_lua/iconpack/chaos_icon.bin", "_lua/iconpack/pack.bin",
+      "_lua/xiaomi-band-10-pro/main.lua", "_lua/xiaomi-band-10-pro/pack.bin",
     ]);
-    const cipkBack = parseCipk(p.files[3][1]);
-    expect(cipkBack.map(([name]) => name)).toEqual(["alarm.bin", "ctrl_disturb.bin", "ctrl_dnd.bin"]);
+    const cipkBack = parseCipk(p.files[1][1]);
+    expect(cipkBack.map(([name]) => name)).toEqual(["alarm.bin", "ctrl_disturb.bin", "ctrl_dnd.bin", "animations.bin"]);
     // 包名由 CIPK 哈希推导
     expect(res.pkgName).toMatch(/^4348[0-9]{8}$/);
   });

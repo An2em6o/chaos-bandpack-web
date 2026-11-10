@@ -35,6 +35,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check types and test pack formats
+        run: |
+          pnpm exec tsc --noEmit
+          pnpm test
+
+      - name: Test Lua installer
+        run: |
+          python3 -m venv .venv-tests
+          .venv-tests/bin/pip install -r tests/requirements-lua.txt
+          .venv-tests/bin/python tests/iconInstaller.test.py
+
       - name: Build
         run: pnpm run build
 

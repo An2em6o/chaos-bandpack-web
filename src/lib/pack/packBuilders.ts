@@ -12,7 +12,8 @@ import {
   encodeUtf8,
   decodeUtf8,
 } from "./shellWriter";
-import { build as buildShell, entry, verifyBuilt, type Entry } from "./shellBuilder";
+import { build as buildShell, entry, verifyBuilt, P67_VERSION, DEFAULT_THEME_NAME, type Entry } from "./shellBuilder";
+import { prepareIconResources } from '../icon/iconAssets';
 import { buildCipk, parseCipk, type Icon } from "./cipk";
 import * as TitleText from "./titleText";
 import { bytesEqual } from "./shellBuilder";
@@ -117,6 +118,8 @@ export interface IconPackInputs {
 
 export interface IconPackResult extends PackResult {
   iconCount: number;
+  animationCount: number;
+  resourceCount: number;
 }
 
 export function buildIconPack(a: PackAssets, inputs: IconPackInputs, preview: Uint8Array): IconPackResult {
@@ -124,28 +127,23 @@ export function buildIconPack(a: PackAssets, inputs: IconPackInputs, preview: Ui
   if (sb.length === 0 || sb.length > SHORT_BYTES) {
     throw new PackError(`图标包短名要在 1..${SHORT_BYTES} 字节之间`);
   }
-  for (const ch of inputs.short) {
-    const c = ch.codePointAt(0)!;
-    if (c <= 0x20 || c >= 0x7f) {
-      throw new PackError(`图标包短名只能是可打印 ASCII: 「${inputs.short}」`);
-    }
-  }
+  if (!/^[A-Za-z0-9_-]{1,12}$/.test(inputs.short)) throw new PackError('图标包短名仅支持 1–12 个 ASCII 字母、数字、下划线或连字符');
+  if (encodeUtf8(inputs.packName).length > 60) throw new PackError('图标包表盘名称不能超过 60 个 UTF-8 字节');
 
-  const cipk = buildCipk(inputs.icons);
+  const resources = prepareIconResources(inputs.icons);
+  const cipk = buildCipk(resources);
   const lua = patchLua(a.iconLua, new Map([
     [PH_PACK_NAME, inputs.short],
     [PH_PACK_TITLE, inputs.title],
   ]));
 
   const entries: Entry[] = [
-    entry("_lua/iconpack/main.lua", utf8Enc.encode(lua)),
-    entry("_lua/iconpack/chaos_sup.ko", a.ko),
-    entry("_lua/iconpack/chaos_icon.bin", a.iconBin),
-    entry("_lua/iconpack/pack.bin", cipk),
+    entry("_lua/xiaomi-band-10-pro/main.lua", utf8Enc.encode(lua)),
+    entry("_lua/xiaomi-band-10-pro/pack.bin", cipk),
   ];
   if (inputs.pkgName !== null) checkPkg(inputs.pkgName);
   const pkg = inputs.pkgName ?? pkgFor(cipk);
-  const out = buildShell(entries, pkg, inputs.packName, preview);
+  const out = buildShell(entries, pkg, inputs.packName, preview, DEFAULT_THEME_NAME, P67_VERSION);
   verifyBuilt(out, pkg, inputs.packName, entries);
 
   // 回读: 第 1 槽的短名替换干净, 第 4 槽的 CIPK 逐字节等于本次生成
@@ -156,17 +154,18 @@ export function buildIconPack(a: PackAssets, inputs: IconPackInputs, preview: Ui
     if (txt.includes(ph)) throw new PackError(`投递 Lua 里还留着 ${ph} 占位符`);
   }
   if (!txt.includes(inputs.short)) throw new PackError(`投递 Lua 里没找到短名「${inputs.short}」`);
-  const [packPath, packData] = readEntry(out, 4);
-  if (!packPath.endsWith("pack.bin")) throw new PackError(`第 4 槽不是 CIPK: ${packPath}`);
+  const [packPath, packData] = readEntry(out, 2);
+  if (!packPath.endsWith("pack.bin")) throw new PackError(`第 2 槽不是 CIPK: ${packPath}`);
   if (!bytesEqual(packData, cipk)) throw new PackError("pack.bin 与本次生成的容器不一致");
   const back = parseCipk(packData);
-  if (back.length !== inputs.icons.length) throw new PackError("CIPK 解回来张数不对");
+  if (back.length !== resources.length) throw new PackError("CIPK 解回来文件数不对");
   back.forEach(([name, data], i) => {
-    const ic = inputs.icons[i];
+    const ic = resources[i];
     if (name !== `${ic.stem}.bin`) throw new PackError(`第 ${i + 1} 张名字对不上: ${name}`);
     if (!bytesEqual(data, ic.data)) throw new PackError(`${name} 内容不一致`);
   });
-  return { bytes: out, pkgName: pkg, packName: inputs.packName, iconCount: back.length };
+  const animationCount = resources.filter(i => i.stem.endsWith('_anim')).length;
+  return { bytes: out, pkgName: pkg, packName: inputs.packName, iconCount: resources.length - animationCount - 1, animationCount, resourceCount: resources.length };
 }
 
 /**
@@ -183,7 +182,7 @@ export function patchLua(src: string, map: Map<string, string>): string {
     if (n !== 1) throw new PackError(`投递 Lua 里 ${ph} 应恰好出现 1 次, 实际 ${n} 次`);
   }
   let out = norm;
-  for (const [ph, v] of map) out = out.replace(ph, luaQuote(v));
+  for (const [ph, v] of map) out = out.replace(ph, () => luaQuote(v));
   return out;
 }
 
@@ -206,7 +205,7 @@ export function luaQuote(s: string): string {
   for (const ch of s) {
     const c = ch.codePointAt(0)!;
     if (ch === '"' || ch === "\\") out += "\\" + ch;
-    else if (c < 0x20) out += "\\" + c;
+    else if (c < 0x20) out += "\\" + String(c).padStart(3, '0');
     else out += ch;
   }
   return out;

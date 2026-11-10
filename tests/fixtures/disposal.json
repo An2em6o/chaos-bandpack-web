@@ -1,0 +1,18 @@
+[
+  {
+    "sha256": "dcf697a3f26c4e17782566deda10042cadab2fe9039b5697e00d9c89c17f7e90",
+    "delay": 50
+  },
+  {
+    "sha256": "298872e6ab983c158a7b2bc51d9a85a1e258a35d5a29047078051ba3c59b969a",
+    "delay": 90
+  },
+  {
+    "sha256": "d20c32079673ebe50ad28b09bf9db55de8569e6ff645bce03e521fda952b6c02",
+    "delay": 130
+  },
+  {
+    "sha256": "3ad81669b7c75072105aca21b687a3dc7b6dc5a72db95e4819d965aae47799e3",
+    "delay": 170
+  }
+]

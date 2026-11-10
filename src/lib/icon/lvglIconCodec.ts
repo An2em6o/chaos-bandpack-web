@@ -48,11 +48,11 @@ class Box {
   splitChannel: number;
   score: number;
   constructor(public colors: ColorCount[]) {
-    this.ranges = [0, 1, 2, 3].map(
-      (ch) =>
-        Math.max(...colors.map((c) => channel(c.color, ch))) -
-        Math.min(...colors.map((c) => channel(c.color, ch))),
-    );
+    this.ranges = [0, 1, 2, 3].map((ch) => {
+      let min = 255, max = 0;
+      for (const c of colors) { const v = channel(c.color, ch); min = Math.min(min, v); max = Math.max(max, v); }
+      return max - min;
+    });
     let best = 0;
     let bestScore = -Infinity;
     for (let ch = 0; ch < 4; ch++) {
@@ -104,6 +104,22 @@ class Box {
  */
 export function indexedRle(pixels: Uint32Array, w: number, h: number): Uint8Array {
   if (!(w > 0 && h > 0) || pixels.length !== w * h) throw new Error("像素数与尺寸不匹配");
+  const { palette, indices } = quantizeArgb(pixels);
+  const raw = new Uint8Array(1024 + pixels.length);
+  raw.set(palette); raw.set(indices, 1024);
+  const compressed = rle(raw);
+  const out = new Uint8Array(12 + 12 + compressed.length);
+  out.set(lvglHeader(w, h, 10, 8, w), 0);
+  const odv = new DataView(out.buffer, 12);
+  odv.setUint32(0, 1, true);
+  odv.setUint32(4, compressed.length, true);
+  odv.setUint32(8, raw.length, true);
+  out.set(compressed, 24);
+  return out;
+}
+
+/** Shared palette, with index zero reserved for transparency. */
+export function quantizeArgb(pixels: Uint32Array): { palette: Uint8Array; indices: Uint8Array } {
   const histogram = new Map<number, number>();
   for (const p of pixels) {
     if (p >>> 24 !== 0) histogram.set(p, (histogram.get(p) ?? 0) + 1);
@@ -150,7 +166,8 @@ export function indexedRle(pixels: Uint32Array, w: number, h: number): Uint8Arra
     }
     lookup.set(color, bestIdx + 1);
   }
-  const raw = new Uint8Array(1024 + pixels.length);
+  const raw = new Uint8Array(1024);
+  const indices = new Uint8Array(pixels.length);
   const rdv = new DataView(raw.buffer);
   rdv.setUint32(0, 0, true);
   for (let i = 0; i < 255; i++) {
@@ -158,17 +175,9 @@ export function indexedRle(pixels: Uint32Array, w: number, h: number): Uint8Arra
   }
   for (let i = 0; i < pixels.length; i++) {
     const p = pixels[i];
-    raw[1024 + i] = p >>> 24 === 0 ? 0 : lookup.get(p)!;
+    indices[i] = p >>> 24 === 0 ? 0 : lookup.get(p)!;
   }
-  const compressed = rle(raw);
-  const out = new Uint8Array(12 + 12 + compressed.length);
-  out.set(lvglHeader(w, h, 10, 8, w), 0);
-  const odv = new DataView(out.buffer, 12);
-  odv.setUint32(0, 1, true);
-  odv.setUint32(4, compressed.length, true);
-  odv.setUint32(8, raw.length, true);
-  out.set(compressed, 24);
-  return out;
+  return { palette: raw, indices };
 }
 
 function rle(raw: Uint8Array): Uint8Array {

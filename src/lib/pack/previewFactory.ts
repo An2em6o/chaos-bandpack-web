@@ -37,7 +37,7 @@ export function imageDataPreview(image: ImageData): Uint8Array {
   if(image.width!==PREVIEW_W||image.height!==PREVIEW_H) throw new Error(`预览尺寸必须是 ${PREVIEW_W}x${PREVIEW_H}`);
   const counts=new Map<number,number>(), reps=new Map<number,[number,number,number]>(), p=image.data;
   for(let i=0;i<p.length;i+=4){const a=p[i+3]; if(a<16)continue; const k=qkey(p[i],p[i+1],p[i+2]);counts.set(k,(counts.get(k)||0)+1);if(!reps.has(k))reps.set(k,[p[i],p[i+1],p[i+2]]);}
-  const colors=[...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([k])=>reps.get(k)!); const must=[[28,28,30],[42,130,228],[255,195,0]]; for(const c of must)if(!colors.some(x=>x[0]===c[0]&&x[1]===c[1]&&x[2]===c[2]))colors.push(c);
+  const colors=[...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([k])=>reps.get(k)!); const must: [number,number,number][]=[[28,28,30],[42,130,228],[255,195,0]]; for(const c of must)if(!colors.some(x=>x[0]===c[0]&&x[1]===c[1]&&x[2]===c[2]))colors.push(c);
   if(colors.length>255) throw new Error("预览调色板超过 256 色"); const pal=new Uint8Array(1024); const map=new Map<number,number>(); colors.forEach((c,i)=>{pal[(i+1)*4]=c[2];pal[(i+1)*4+1]=c[1];pal[(i+1)*4+2]=c[0];pal[(i+1)*4+3]=255;map.set(qkey(...c),i+1);});
   const idx=new Uint8Array(PREVIEW_W*PREVIEW_H); for(let i=0,j=0;i<p.length;i+=4,j++){if(p[i+3]>=16)idx[j]=map.get(qkey(p[i],p[i+1],p[i+2]))!;} return encodePreview(idx,pal);
 }

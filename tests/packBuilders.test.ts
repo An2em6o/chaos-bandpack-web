@@ -15,6 +15,7 @@ import {
   PH_FONT_NAME,
   type PackAssets,
 } from "../src/lib/pack/packBuilders";
+import { bgra } from "../src/lib/icon/lvglIconCodec";
 import * as TitleText from "../src/lib/pack/titleText";
 import { buildCipk, parseCipk, CipkError, icon } from "../src/lib/pack/cipk";
 
@@ -108,23 +109,23 @@ describe("字体包结构", () => {
 });
 
 describe("图标包结构", () => {
-  it("四槽结构正确且 CIPK 往返一致", () => {
-    const icons = [icon("alarm", new Uint8Array(120).fill(7)), icon("heartrate", new Uint8Array(90).fill(9))];
+  it("p67 两槽结构正确且 CIPK 和零位图索引往返一致", () => {
+    const icons = [icon("alarm", bgra(new Uint32Array(96 * 96).fill(0xff112233), 96, 96)), icon("heartrate", bgra(new Uint32Array(96 * 96).fill(0xff334455), 96, 96))];
     const res = buildIconPack(fakeAssets, {
       short: "Demo", packName: "图标:Demo", title: "图标投递 Demo", pkgName: null, icons,
     }, fakePreview(800));
 
     const p = parseShell(res.bytes);
-    expect(p.files.length).toBe(4);
+    expect(p.files.length).toBe(2);
     expect(res.iconCount).toBe(2);
     expect(p.files.map(([path]) => path)).toEqual([
-      "_lua/iconpack/main.lua", "_lua/iconpack/chaos_sup.ko",
-      "_lua/iconpack/chaos_icon.bin", "_lua/iconpack/pack.bin",
+      "_lua/xiaomi-band-10-pro/main.lua", "_lua/xiaomi-band-10-pro/pack.bin",
     ]);
-    const cipk = p.files[3][1];
+    const cipk = p.files[1][1];
     expect(res.pkgName).toBe(pkgFor(cipk));
     const back = parseCipk(cipk);
-    expect(back.length).toBe(2);
+    expect(back.length).toBe(3);
+    expect(back[2][0]).toBe("animations.bin");
     expect(back[0][0]).toBe("alarm.bin");
     expect(Buffer.from(back[0][1]).equals(Buffer.from(icons[0].data))).toBe(true);
     const lua = new TextDecoder().decode(p.files[0][1]);
@@ -159,7 +160,7 @@ describe("模板占位符纪律", () => {
   });
 
   it("控制字符走十进制转义", () => {
-    expect(luaQuote("a\u0007b")).toBe("a\\7b");
+    expect(luaQuote("a\u0007b")).toBe("a\\007b");
   });
 });
 

@@ -1,4 +1,4 @@
--- 图标投递包: 把本容器里的 pack.bin(一包 38 张桌面图标)解到 /data/chaos/icons/<包号>/,
+-- 图标投递包: 把本容器里的 pack.bin(静态图标、DGF1 动画和 CIA1 索引)解到 /data/chaos/icons/<包号>/,
 -- 再把这一包登记进清单 index.txt。装完之后在"系统美化"页的图标包列表里点一下就能切过去,
 -- 不需要重启手表, 也不需要重刷主包。
 --
@@ -64,6 +64,7 @@ local CIPK_MAGIC = "CIPK"
 local CHUNK = 0x10000        -- 每拍最多搬 64KB(与字体包同一档)
 
 local job = {
+  checksrc = nil, verify = nil, seen = nil, total = 0,
   stage = 0, pack = 0, src = nil, dst = nil, lines = nil,
   count = 0, idx = 0, moved = 0, left = 0, wrote = 0,
 }
@@ -107,10 +108,21 @@ local function parse_index(raw)
   return lines
 end
 
+-- Some device filesystems return short reads; accumulate only one bounded chunk.
+local function read_exact(f, n)
+  local chunks, left = {}, n
+  while left > 0 do
+    local block = f:read(left)
+    if type(block) ~= "string" or #block == 0 or #block > left then return nil end
+    chunks[#chunks + 1], left = block, left - #block
+  end
+  return table.concat(chunks)
+end
+
 local function read_index()
   local f = io.open(INDEX_PATH, "rb")
   if not f then return "" end
-  local raw = f:read(INDEX_SIZE)
+  local raw = read_exact(f, INDEX_SIZE)
   pcall(f.close, f)
   if type(raw) ~= "string" then return "" end
   return raw
@@ -133,11 +145,30 @@ local function render_index(entries)
 end
 
 local function write_index(entries)
-  local f, err = io.open(INDEX_PATH, "wb")
+  local temporary = INDEX_PATH .. ".tmp"
+  local raw = render_index(entries)
+  local f, err = io.open(temporary, "wb")
   if not f then return false, tostring(err) end
-  local ok = pcall(f.write, f, render_index(entries))
-  pcall(f.close, f)
-  return ok
+  local ok, written = pcall(f.write, f, raw)
+  local closed, result = pcall(f.close, f)
+  if not ok or not written or not closed or not result then
+    pcall(os.remove, temporary)
+    return false, "临时清单写入失败"
+  end
+  local rf = io.open(temporary, "rb")
+  if not rf then return false, "临时清单无法回读" end
+  local back, extra = read_exact(rf, INDEX_SIZE), rf:read(1)
+  local read_closed, read_result = pcall(rf.close, rf)
+  if back ~= raw or (extra and #extra > 0) or not read_closed or not read_result then
+    pcall(os.remove, temporary)
+    return false, "临时清单回读不符"
+  end
+  local renamed, rename_result = pcall(os.rename, temporary, INDEX_PATH)
+  if not renamed or not rename_result then
+    pcall(os.remove, temporary)
+    return false, "清单 rename 失败，原清单未替换"
+  end
+  return true
 end
 
 -- 定包号: 同名复用, 否则取最小空号; 满了返回 nil
@@ -159,6 +190,8 @@ end
 local function close_files()
   if job.src then pcall(function() job.src:close() end) job.src = nil end
   if job.dst then pcall(function() job.dst:close() end) job.dst = nil end
+  if job.checksrc then pcall(function() job.checksrc:close() end) job.checksrc = nil end
+  if job.verify then pcall(function() job.verify:close() end) job.verify = nil end
 end
 
 local function finish(ok, text)
@@ -171,135 +204,99 @@ end
 -- ===== 解包(与界面无关) =====
 
 local function step()
-  -- 1) 准备: 定包号 -> 建目录 -> 打开容器读头
   if job.stage == 1 then
+    if not PACK_NAME:match("^[A-Za-z0-9_-]+$") or #PACK_NAME > 12 then
+      finish(false, "包短名不合法") return
+    end
     local lines = parse_index(read_index())
     local id = pick_pack(lines)
-    if not id then
-      finish(false, "图标包已满(8), 请先删一个")
-      return
+    if not id then finish(false, "图标包已满(8), 请先删一个") return end
+    job.pack, job.lines = id, lines
+    job.src = io.open(PACK_RESOURCE, "rb")
+    job.checksrc = io.open(PACK_RESOURCE, "rb")
+    if not job.src or not job.checksrc then finish(false, "容器里没有 pack.bin") return end
+    local header = read_exact(job.src, 8)
+    if not header or header:sub(1, 4) ~= CIPK_MAGIC or read_exact(job.checksrc, 8) ~= header then
+      finish(false, "pack.bin 头不符") return
     end
-    job.pack = id
-    job.lines = lines
-    -- 先把这个包号的目录整个清掉再建: 上一包可能投递到一半失败(比如容器坏在中间),
-    -- 留下几十张旧图; 而包号是按"最小空号"分配的, 下一包如果张数更少(素材池缺项),
-    -- 那些旧图就会被当成这一包的图标 = 两套图标混在一起。
-    -- 路径前缀 + 两位包号都是自己拼的, 没有外部输入, 不存在注入面。
+    local count = read_u32(header, 5)
+    if not count or count < 1 or count > 256 then finish(false, "资源文件数非法") return end
     local dir = ICON_DIR .. "/" .. string.format("%02d", id)
     pcall(function() os.execute("rm -rf " .. dir) end)
     pcall(function() os.execute("mkdir -p " .. dir) end)
-    local src = io.open(PACK_RESOURCE, "rb")
-    if not src then
-      finish(false, "容器里没有 pack.bin")
-      return
-    end
-    local hdr = src:read(8)
-    if type(hdr) ~= "string" or #hdr < 8 or hdr:sub(1, 4) ~= CIPK_MAGIC then
-      src:close()
-      finish(false, "pack.bin 头不符")
-      return
-    end
-    local count = read_u32(hdr, 5)
-    if not count or count < 1 or count > 256 then
-      src:close()
-      finish(false, "图标张数非法: " .. tostring(count))
-      return
-    end
-    job.src = src
-    job.count, job.idx, job.wrote, job.moved, job.left = count, 0, 0, 0, 0
-    set_status(PACK_NAME .. " 解包 0/" .. count)
+    job.count, job.idx, job.wrote, job.total, job.seen = count, 0, 0, 8, {}
     job.stage = 2
+    set_status(PACK_NAME .. " 解包 0/" .. count)
     return
   end
 
-  -- 2) 每拍解一张(一张内部按 64KB 分块)
   if job.stage == 2 then
     if not job.dst then
       if job.idx >= job.count then
-        job.stage = 3
-        return
+        local extra, check_extra = job.src:read(1), job.checksrc:read(1)
+        if (extra and #extra > 0) or (check_extra and #check_extra > 0) then
+          finish(false, "CIPK 尾部有多余数据") return
+        end
+        job.stage = 3 return
       end
-      local lh = job.src:read(4)
-      local len = lh and read_u32(lh, 1)
-      -- 单张上限 512KB: 实测素材单张 50188 字节, 给足余量又把明显坏的长度挡在写盘之前
-      if not len or len < 1 or len > 0x80000 then
-        finish(false, "第 " .. (job.idx + 1) .. " 张长度头非法")
-        return
+      local header = read_exact(job.src, 5)
+      if not header or read_exact(job.checksrc, 5) ~= header then finish(false, "资源长度头缺失") return end
+      local len, nl = read_u32(header, 1), header:byte(5)
+      if nl < 1 or nl > 64 then finish(false, "资源名字长度非法") return end
+      local name = read_exact(job.src, nl)
+      if not name or read_exact(job.checksrc, nl) ~= name or not name:match("^[A-Za-z0-9_]+%.bin$") then
+        finish(false, "资源名字非法") return
       end
-      local nh = job.src:read(1)
-      local nl = nh and nh:byte(1)
-      -- 名字只允许 [A-Za-z0-9_]+.bin: 绝不让容器决定落点(路径穿越在这里断掉)
-      local nm = (nl and nl > 0 and nl <= 64) and job.src:read(nl) or nil
-      if type(nm) ~= "string" or #nm ~= nl or not nm:match("^[%w_]+%.bin$") then
-        finish(false, "第 " .. (job.idx + 1) .. " 张名字非法")
-        return
-      end
-      local dst, derr = io.open(ICON_DIR .. "/" .. string.format("%02d", job.pack) .. "/" .. nm, "wb")
-      if not dst then
-        finish(false, "打不开目标文件: " .. tostring(derr))
-        return
-      end
-      job.nm = nm
-      job.dst, job.left, job.moved, job.flen = dst, len, 0, len
+      if job.seen[name] then finish(false, "资源重复: " .. name) return end
+      job.seen[name] = true
+      local limit = name:match("_anim%.bin$") and 0x100000 or 0x80000
+      if not len or len < 1 or len > limit then finish(false, "资源长度超过上限: " .. name) return end
+      job.total = job.total + 5 + nl + len
+      if job.total > 0xFFFFFF then finish(false, "pack.bin 超过 16 MiB 限制") return end
+      job.path = ICON_DIR .. "/" .. string.format("%02d", job.pack) .. "/" .. name
+      job.dst = io.open(job.path, "wb")
+      if not job.dst then finish(false, "无法写入资源: " .. name) return end
+      job.left, job.flen = len, len
       return
     end
-    local want = job.left
-    if want > CHUNK then want = CHUNK end
-    local blk = want > 0 and job.src:read(want) or ""
-    if type(blk) ~= "string" or #blk == 0 then
-      finish(false, "第 " .. (job.idx + 1) .. " 张数据缺失")
-      return
-    end
-    -- 满盘时 write 返回 nil(不抛异常) —— 不查返回值就会出现"已投递 N 张"的
-    -- 假象, 实际磁盘上是 0 字节/半截文件: LVGL open 成功、解码失败 = 图标全灭
-    -- (2026-10-04 真机事故, Pure/Delta 两个包同灭的根因)。
-    local wok, wobj = pcall(job.dst.write, job.dst, blk)
-    if not wok or not wobj then
-      close_files()
-      pcall(function() os.remove(ICON_DIR .. "/" .. string.format("%02d", job.pack) .. "/" .. job.nm) end)
-      finish(false, "第 " .. (job.idx + 1) .. " 张写入失败, 空间可能不足, 请先删几个图标包")
-      return
-    end
-    job.left = job.left - #blk
-    job.moved = job.moved + #blk
+    local want = math.min(job.left, CHUNK)
+    local block = read_exact(job.src, want)
+    if not block then finish(false, "资源数据缺失") return end
+    local ok, result = pcall(job.dst.write, job.dst, block)
+    if not ok or not result then finish(false, "资源写入失败，请检查剩余空间") return end
+    job.left = job.left - #block
     if job.left == 0 then
-      local cok = pcall(job.dst.close, job.dst)
+      local closed, result_close = pcall(job.dst.close, job.dst)
       job.dst = nil
-      -- 复核落盘大小: 防个别文件系统"write 返回成功但数据没落"的静默丢失
-      local szok, sz = pcall(function()
-        local rf = io.open(ICON_DIR .. "/" .. string.format("%02d", job.pack) .. "/" .. job.nm, "rb")
-        if not rf then return -1 end
-        local n = #rf:read("*a")
-        rf:close()
-        return n
-      end)
-      if not szok or sz ~= job.flen then
-        pcall(function() os.remove(ICON_DIR .. "/" .. string.format("%02d", job.pack) .. "/" .. job.nm) end)
-        finish(false, "第 " .. (job.idx + 1) .. " 张落盘不完整, 空间可能不足, 请先删几个图标包")
-        return
-      end
-      if not cok or job.moved <= 0 then
-        finish(false, "第 " .. (job.idx + 1) .. " 张没写全")
-        return
-      end
-      job.idx = job.idx + 1
-      job.wrote = job.wrote + 1
-      set_status(PACK_NAME .. " 解包 " .. job.idx .. "/" .. job.count)
+      if not closed or not result_close then finish(false, "资源关闭失败") return end
+      job.verify = io.open(job.path, "rb")
+      if not job.verify then finish(false, "资源无法回读") return end
+      job.left, job.stage = job.flen, 4
     end
     return
   end
 
-  -- 3) 登记清单: 128 字节定长整块写(不删文件, 不需要 O_TRUNC)
+  -- Compare the written file against a second streaming source reader: no read('*a').
+  if job.stage == 4 then
+    local want = math.min(job.left, CHUNK)
+    local expected, actual = read_exact(job.checksrc, want), read_exact(job.verify, want)
+    if not expected or actual ~= expected then finish(false, "资源回读不一致") return end
+    job.left = job.left - want
+    if job.left == 0 then
+      local extra = job.verify:read(1)
+      local closed, result = pcall(job.verify.close, job.verify)
+      job.verify = nil
+      if (extra and #extra > 0) or not closed or not result then finish(false, "资源回读长度不符") return end
+      job.idx, job.wrote, job.stage = job.idx + 1, job.wrote + 1, 2
+      set_status(PACK_NAME .. " 校验 " .. job.idx .. "/" .. job.count)
+    end
+    return
+  end
+
   if job.stage == 3 then
     local ok, err = write_index(job.lines)
-    if not ok then
-      finish(false, "清单写失败: " .. tostring(err))
-      return
-    end
-    pcall(function() job.src:close() end)
-    job.src = nil
-    finish(true, "已投递 " .. job.wrote .. " 张, 包号 " .. string.format("%02d", job.pack))
-    return
+    if not ok then finish(false, "清单写失败: " .. tostring(err)) return end
+    finish(true, "已投递 " .. job.wrote .. " 个资源, 包号 " .. string.format("%02d", job.pack))
   end
 end
 

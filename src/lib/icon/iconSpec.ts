@@ -42,7 +42,7 @@ export interface Slot {
 
 const s = (stem: string, label: string, group: GroupName = "DESKTOP"): Slot => ({ stem, label, group });
 
-export const ABSENT_ON_DEVICE = new Set(["dealt", "innovation_research"]);
+export const ABSENT_ON_DEVICE = new Set<string>();
 
 export const DESKTOP: Slot[] = [
   s("activities", "活力指标"),
@@ -56,9 +56,11 @@ export const DESKTOP: Slot[] = [
   s("card", "卡包"),
   s("chronograph", "秒表"),
   s("compass", "指南针"),
+  s("dealt", "事项"),
   s("findphone", "找手机"),
   s("flashlight", "手电筒"),
   s("heartrate", "心率"),
+  s("innovation_research", "创新研究"),
   s("interconnect", "多端联动"),
   s("mijia", "米家"),
   s("music", "音乐"),
@@ -93,6 +95,9 @@ export const CONTROL: Slot[] = [
   s("ctrl_disturb", "勿扰", "CONTROL"),
   s("ctrl_raise", "抬腕亮屏", "CONTROL"),
   s("ctrl_game", "游戏模式", "CONTROL"),
+  s("ctrl_phone_conn", "手机已连接", "CONTROL"),
+  s("ctrl_phone_disconn", "手机未连接", "CONTROL"),
+  { stem: "ctrl_dnd", label: "勿扰画布", group: "CONTROL", width: 160, height: 124 },
 ];
 
 export const SETTINGS: Slot[] = [
@@ -106,6 +111,8 @@ export const SETTINGS: Slot[] = [
   s("set_preference", "偏好", "SETTINGS"),
   s("set_mydevice", "我的设备", "SETTINGS"),
   s("set_wrist", "佩戴方式", "SETTINGS"),
+  s("set_hr", "心率广播", "SETTINGS"),
+  { stem: "cal_background", label: "日历磁贴底图", group: "SETTINGS", width: 112, height: 112 },
 ];
 
 export const CARD: Slot[] = [
